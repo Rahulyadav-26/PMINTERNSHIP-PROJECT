@@ -14,6 +14,8 @@ export const SAMPLE_INTERNSHIPS: Internship[] = [
     capacity: 10,
     stipendMin: 10000,
     stipendMax: 15000,
+    durationWeeks: 12,
+    applicationDeadline: '2025-10-31T23:59:59.000Z',
   },
   {
     id: 'int-002',
@@ -28,6 +30,8 @@ export const SAMPLE_INTERNSHIPS: Internship[] = [
     capacity: 8,
     stipendMin: 12000,
     stipendMax: 18000,
+    durationWeeks: 16,
+    applicationDeadline: '2025-11-15T23:59:59.000Z',
   },
   {
     id: 'int-003',
@@ -42,6 +46,8 @@ export const SAMPLE_INTERNSHIPS: Internship[] = [
     capacity: 6,
     stipendMin: 13000,
     stipendMax: 20000,
+    durationWeeks: 20,
+    applicationDeadline: '2025-11-30T23:59:59.000Z',
   },
   {
     id: 'int-004',
@@ -56,5 +62,7 @@ export const SAMPLE_INTERNSHIPS: Internship[] = [
     capacity: 4,
     stipendMin: 15000,
     stipendMax: 25000,
+    durationWeeks: 10,
+    applicationDeadline: '2025-10-20T23:59:59.000Z',
   }
 ];

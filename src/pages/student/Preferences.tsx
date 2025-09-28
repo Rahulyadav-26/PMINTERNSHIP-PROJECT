@@ -88,9 +88,15 @@ export const Preferences: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="minStipend">Minimum Stipend (₹)</Label>
-              <Input id="minStipend" type="number" value={preferences.minStipend || 0} onChange={(e) => setPreferences({ minStipend: Number(e.target.value) })} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="minStipend">Minimum Stipend (₹)</Label>
+                <Input id="minStipend" type="number" value={preferences.minStipend || 0} onChange={(e) => setPreferences({ minStipend: Number(e.target.value) })} />
+              </div>
+              <div>
+                <Label htmlFor="minDurationWeeks">Minimum Duration (weeks)</Label>
+                <Input id="minDurationWeeks" type="number" value={preferences.minDurationWeeks || 0} onChange={(e) => setPreferences({ minDurationWeeks: Number(e.target.value) })} />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -100,6 +106,35 @@ export const Preferences: React.FC = () => {
               <div>
                 <Label>Available Until</Label>
                 <Input type="date" onChange={(e) => setPreferences({ availabilityEnd: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Home State</Label>
+                <Input placeholder="e.g., Delhi" value={preferences.homeState || ''} onChange={(e) => setPreferences({ homeState: e.target.value })} />
+              </div>
+              <div>
+                <Label>City</Label>
+                <Input placeholder="e.g., New Delhi" value={preferences.city || ''} onChange={(e) => setPreferences({ city: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Area Type</Label>
+                <Select value={preferences.ruralUrban || 'unspecified'} onValueChange={(v) => setPreferences({ ruralUrban: v as any })}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unspecified">Unspecified</SelectItem>
+                    <SelectItem value="rural">Rural</SelectItem>
+                    <SelectItem value="urban">Urban</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" className="rounded border" checked={!!preferences.willingToRelocate} onChange={(e) => setPreferences({ willingToRelocate: e.target.checked })} />
+                  Willing to relocate
+                </label>
               </div>
             </div>
           </CardContent>

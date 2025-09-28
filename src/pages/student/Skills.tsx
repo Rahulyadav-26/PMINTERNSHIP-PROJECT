@@ -10,6 +10,7 @@ import { useStudent } from '@/contexts/StudentContext';
 export const Skills: React.FC = () => {
   const { profile, addSkill, removeSkill } = useStudent();
   const [query, setQuery] = useState('');
+  const [custom, setCustom] = useState('');
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -42,6 +43,10 @@ export const Skills: React.FC = () => {
                     + {s}
                   </Button>
                 ))}
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Input placeholder="Add custom skill (e.g., Public Speaking)" value={custom} onChange={(e) => setCustom(e.target.value)} />
+                <Button onClick={() => { if (custom.trim()) { addSkill(custom.trim()); setCustom(''); } }}>Add</Button>
               </div>
             </div>
           </CardContent>

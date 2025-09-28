@@ -8,7 +8,7 @@ import { StudentProvider } from "@/contexts/StudentContext";
 
 // Pages
 import { Landing } from "./pages/Landing";
-import { Login } from "./pages/auth/Login";
+import Login from "./pages/auth/Login";
 import { Register } from "./pages/auth/Register";
 import { StudentProfile } from "./pages/student/StudentProfile";
 import { Skills } from "./pages/student/Skills";
@@ -21,6 +21,9 @@ import { Consent } from "./pages/student/Consent";
 import { AdminData } from "./pages/admin/AdminData";
 import { MinistryBias } from "./pages/ministry/MinistryBias";
 import NotFound from "./pages/NotFound";
+import ApplicationForm from "./pages/student/ApplicationForm";
+import BulkApplicationForm from "./pages/student/BulkApplicationForm";
+import About from "./pages/About";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +78,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/about" element={<About />} />
             
             {/* Dashboard Redirect */}
             <Route path="/dashboard" element={
@@ -117,6 +121,16 @@ const App = () => (
             <Route path="/dashboard/offers" element={
               <ProtectedRoute requiredRole="student">
                 <Offers />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/apply/:internshipId" element={
+              <ProtectedRoute requiredRole="student">
+                <ApplicationForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/apply/bulk" element={
+              <ProtectedRoute requiredRole="student">
+                <BulkApplicationForm />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/consent" element={

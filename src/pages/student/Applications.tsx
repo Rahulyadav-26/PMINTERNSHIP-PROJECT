@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { useStudent } from '@/contexts/StudentContext';
 import { SAMPLE_INTERNSHIPS } from '@/lib/sampleData';
+import { formatRemaining } from '@/lib/utils';
 
 export const Applications: React.FC = () => {
   const { applications, withdrawApplication, simulateOffer } = useStudent();
@@ -27,15 +28,29 @@ export const Applications: React.FC = () => {
                 </div>
                 <div className="text-right text-xs text-muted-foreground">
                   <div>Applied: {new Date(app.createdAt).toLocaleString()}</div>
+                  {internship?.applicationDeadline && (
+                    <div>Deadline: {formatRemaining(internship.applicationDeadline)}</div>
+                  )}
                 </div>
               </CardHeader>
-              <CardContent className="flex gap-2">
-                {app.status === 'applied' && (
-                  <Button variant="outline" onClick={() => withdrawApplication(app.id)}>Withdraw</Button>
-                )}
-                {app.status === 'applied' && (
-                  <Button variant="outline" onClick={() => simulateOffer(app.id)}>Simulate Offer</Button>
-                )}
+              <CardContent>
+                {/* Timeline */}
+                <div className="text-xs text-muted-foreground mb-3">
+                  <div className="font-medium text-foreground mb-1">Timeline</div>
+                  <ul className="list-disc list-inside">
+                    {app.timeline.map((e, idx) => (
+                      <li key={idx}>{e.status} at {new Date(e.at).toLocaleString()}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex gap-2">
+                  {app.status === 'applied' && (
+                    <Button variant="outline" onClick={() => withdrawApplication(app.id)}>Withdraw</Button>
+                  )}
+                  {app.status === 'applied' && (
+                    <Button variant="outline" onClick={() => simulateOffer(app.id)}>Simulate Offer</Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           );
