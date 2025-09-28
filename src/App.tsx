@@ -13,7 +13,7 @@ import { Register } from "./pages/auth/Register";
 import { StudentProfile } from "./pages/student/StudentProfile";
 import { Skills } from "./pages/student/Skills";
 import { Preferences } from "./pages/student/Preferences";
-import { Resume } from "./pages/student/Resume";
+import Resume from "./pages/student/Resume";
 import { Recommendations } from "./pages/student/Recommendations";
 import { Applications } from "./pages/student/Applications";
 import { Offers } from "./pages/student/Offers";
