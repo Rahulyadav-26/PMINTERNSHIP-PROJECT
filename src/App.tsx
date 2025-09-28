@@ -34,6 +34,7 @@ import BulkApplicationForm from "./pages/student/BulkApplicationForm";
 import About from "./pages/About";
 import FAQ from "./pages/FAQ";
 import Feedback from "./pages/student/Feedback";
+import AllocationResults from "./pages/student/AllocationResults";
 
 const queryClient = new QueryClient();
 
@@ -142,6 +143,11 @@ const App = () => (
             <Route path="/dashboard/apply/bulk" element={
               <ProtectedRoute requiredRole="student">
                 <BulkApplicationForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/results" element={
+              <ProtectedRoute requiredRole="student">
+                <AllocationResults />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/feedback" element={
