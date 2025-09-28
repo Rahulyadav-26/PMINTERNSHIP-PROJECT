@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
-import { Application, ApplicationFormData, ApplicationStatus, Consent, Internship, Offer, Preferences, Recommendation, StudentProfile, StudentState } from '@/types/student';
+import { Application, ApplicationFormData, ApplicationStatus, Consent, Internship, Offer, Preferences, Recommendation, StudentProfile, StudentState, FeedbackData } from '@/types/student';
 import { SAMPLE_INTERNSHIPS } from '@/lib/sampleData';
 import { rankInternships } from '@/lib/matching';
 import { SKILLS } from '@/lib/skills';
@@ -26,7 +26,7 @@ interface StudentContextType extends StudentState {
   declineOffer: (applicationId: string) => void;
   toggleSave: (internshipId: string) => void;
   isSaved: (internshipId: string) => boolean;
-  submitFeedback: (applicationId: string, internshipId: string, rating: number, comment?: string) => void;
+  submitFeedback: (feedback: FeedbackData) => void;
   updateApplicationStatus: (applicationId: string, status: ApplicationStatus) => void;
   saveDraft: (internshipId: string, form: ApplicationFormData) => void;
   loadDraft: (internshipId: string) => ApplicationFormData | null;
@@ -61,7 +61,7 @@ type Action =
   | { type: 'UPDATE_APP'; payload: Application }
   | { type: 'SET_OFFERS'; payload: Offer[] }
   | { type: 'TOGGLE_SAVE'; payload: string }
-  | { type: 'ADD_FEEDBACK'; payload: { id: string; applicationId: string; internshipId: string; rating: number; comment?: string; createdAt: string } }
+  | { type: 'ADD_FEEDBACK'; payload: FeedbackData }
   | { type: 'SET_DRAFTS'; payload: NonNullable<StudentState['drafts']> };
 
 function now() { return new Date().toISOString(); }
@@ -327,7 +327,7 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updatedAt: now(),
       };
       dispatch({ type: 'UPDATE_APP', payload: updatedApp });
-      const offers = state.offers.map(o => o.applicationId === applicationId ? { ...o, status: 'accepted', respondedAt: now() } : o);
+      const offers = state.offers.map(o => o.applicationId === applicationId ? { ...o, status: 'accepted' as const, respondedAt: now() } : o);
       dispatch({ type: 'SET_OFFERS', payload: offers });
       const intn = SAMPLE_INTERNSHIPS.find(i => i.id === app.internshipId);
       notify('Offer accepted', intn ? `${intn.title}` : undefined);
@@ -342,14 +342,13 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updatedAt: now(),
       };
       dispatch({ type: 'UPDATE_APP', payload: updatedApp });
-      const offers = state.offers.map(o => o.applicationId === applicationId ? { ...o, status: 'declined', respondedAt: now() } : o);
+      const offers = state.offers.map(o => o.applicationId === applicationId ? { ...o, status: 'declined' as const, respondedAt: now() } : o);
       dispatch({ type: 'SET_OFFERS', payload: offers });
       const intn = SAMPLE_INTERNSHIPS.find(i => i.id === app.internshipId);
       notify('Offer declined', intn ? `${intn.title}` : undefined);
     },
-    submitFeedback: (applicationId, internshipId, rating, comment) => {
-      const entry = { id: `fb-${Date.now()}`, applicationId, internshipId, rating, comment, createdAt: now() };
-      dispatch({ type: 'ADD_FEEDBACK', payload: entry });
+    submitFeedback: (feedback) => {
+      dispatch({ type: 'ADD_FEEDBACK', payload: feedback });
     },
     updateApplicationStatus: (applicationId, status) => {
       const app = state.applications.find(a => a.id === applicationId);

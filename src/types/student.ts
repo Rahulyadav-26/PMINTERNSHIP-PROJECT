@@ -122,12 +122,16 @@ export interface Recommendation {
   explanations: RecommendationExplanation[];
 }
 
-export interface FeedbackEntry {
+export interface FeedbackData {
   id: string;
   applicationId: string;
   internshipId: string;
-  rating: number; // 1..5
-  comment?: string;
+  feedbackType: 'student' | 'industry';
+  rating: number;
+  mostLiked: string;
+  improvements: string;
+  wouldRecommend: boolean;
+  category?: string;
   createdAt: string;
 }
 
@@ -146,6 +150,6 @@ export interface StudentState {
   applications: Application[];
   offers: Offer[];
   savedInternshipIds: string[];
-  feedbacks: FeedbackEntry[];
+  feedbacks: FeedbackData[];
   drafts?: DraftApplication[];
 }
