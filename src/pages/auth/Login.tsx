@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, Variants } from 'framer-motion';
 import { 
   Eye, EyeOff, Mail, Lock, ArrowLeft, CheckCircle, Sparkles, Star, Zap, Award, 
   Users, Building2, GraduationCap, Shield, Github, Chrome, Linkedin, Globe,
@@ -265,7 +265,7 @@ export default function Login() {
 
   const currentRole = roleConfigs[activeTab];
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -276,7 +276,7 @@ export default function Login() {
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0 }
   };
@@ -687,5 +687,3 @@ export default function Login() {
     </div>
   );
 }
-
-
