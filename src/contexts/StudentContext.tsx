@@ -162,8 +162,19 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!user) return;
     const existing = loadState(user.id);
     if (existing) {
-      dispatch({ type: 'INIT', payload: { drafts: [], ...existing } });
-      scheduleDeadlineToasts(existing);
+      // Hydrate missing fields for backward compatibility
+      const hydrated: StudentState = {
+        profile: existing.profile ?? null,
+        preferences: existing.preferences ?? defaultPrefs,
+        consent: existing.consent ?? defaultConsent,
+        applications: existing.applications ?? [],
+        offers: existing.offers ?? [],
+        savedInternshipIds: existing.savedInternshipIds ?? [],
+        feedbacks: existing.feedbacks ?? [],
+        drafts: existing.drafts ?? [],
+      };
+      dispatch({ type: 'INIT', payload: hydrated });
+      scheduleDeadlineToasts(hydrated);
     } else {
       const profile: StudentProfile = {
         id: `sp-${user.id}`,
@@ -174,8 +185,9 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         createdAt: now(),
         updatedAt: now(),
       };
-      dispatch({ type: 'INIT', payload: { profile, preferences: defaultPrefs, consent: defaultConsent, applications: [], offers: [], savedInternshipIds: [], feedbacks: [], drafts: [] } });
-      scheduleDeadlineToasts({ profile, preferences: defaultPrefs, consent: defaultConsent, applications: [], offers: [], savedInternshipIds: [], feedbacks: [], drafts: [] });
+      const initial: StudentState = { profile, preferences: defaultPrefs, consent: defaultConsent, applications: [], offers: [], savedInternshipIds: [], feedbacks: [], drafts: [] };
+      dispatch({ type: 'INIT', payload: initial });
+      scheduleDeadlineToasts(initial);
     }
   }, [user?.id]);
 

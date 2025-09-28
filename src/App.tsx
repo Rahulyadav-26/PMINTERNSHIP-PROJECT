@@ -24,6 +24,8 @@ import NotFound from "./pages/NotFound";
 import ApplicationForm from "./pages/student/ApplicationForm";
 import BulkApplicationForm from "./pages/student/BulkApplicationForm";
 import About from "./pages/About";
+import FAQ from "./pages/FAQ";
+import Feedback from "./pages/student/Feedback";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +81,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/about" element={<About />} />
+            <Route path="/faq" element={<FAQ />} />
             
             {/* Dashboard Redirect */}
             <Route path="/dashboard" element={
@@ -131,6 +134,11 @@ const App = () => (
             <Route path="/dashboard/apply/bulk" element={
               <ProtectedRoute requiredRole="student">
                 <BulkApplicationForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/feedback" element={
+              <ProtectedRoute requiredRole="student">
+                <Feedback />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/consent" element={
