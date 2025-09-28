@@ -17,9 +17,10 @@ import {
   Filter, Calendar, Settings, BookOpen, FileText, Camera, Video,
   BarChart3, PieChart, LineChart, Activity, Code, Palette, Coffee
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 // Enhanced Custom Components
-const InteractiveOrb: React.FC<{ 
+const InteractiveOrb: React.FC<{
   size?: string; 
   color?: string; 
   delay?: number; 
@@ -111,9 +112,9 @@ const LiveCounter: React.FC<{
   useEffect(() => {
     if (inView && !isVisible) {
       setIsVisible(true);
-      let startTime = Date.now();
       const animate = () => {
         const now = Date.now();
+        const startTime = Date.now();
         const progress = Math.min((now - startTime) / duration, 1);
         setCount(Math.floor(progress * end));
         if (progress < 1) {
@@ -150,7 +151,7 @@ const LiveCounter: React.FC<{
 };
 
 const InteractiveCard: React.FC<{
-  icon: React.ComponentType<any>;
+  icon: LucideIcon;
   title: string;
   description: string;
   features: string[];
@@ -319,7 +320,7 @@ const InteractiveTimeline: React.FC<{
     title: string;
     description: string;
     details: string[];
-    icon: React.ComponentType<any>;
+    icon: LucideIcon;
     color: string;
   }>;
 }> = ({ steps }) => {
@@ -524,7 +525,7 @@ const InteractiveButton: React.FC<{
   onClick?: () => void;
   className?: string;
   variant?: "primary" | "secondary" | "outline";
-  icon?: React.ComponentType<any>;
+  icon?: LucideIcon;
 }> = ({ children, href, onClick, className = "", variant = "primary", icon: Icon }) => {
   const [isClicked, setIsClicked] = useState(false);
   
