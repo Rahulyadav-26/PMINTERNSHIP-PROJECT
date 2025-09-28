@@ -245,15 +245,15 @@ function ApplicationCard({ app, internship, score, selected, onSelect, onDetails
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 p-3 bg-muted/30 rounded-lg">
             <div className="text-center">
               <div className="text-xs text-muted-foreground">Duration</div>
-              <div className="font-medium text-sm">{internship.duration}</div>
+              <div className="font-medium text-sm">{internship.durationWeeks} weeks</div>
             </div>
             <div className="text-center">
               <div className="text-xs text-muted-foreground">Stipend</div>
-              <div className="font-medium text-sm">{internship.stipend}</div>
+              <div className="font-medium text-sm">₹{internship.stipendMin}-{internship.stipendMax}</div>
             </div>
             <div className="text-center">
-              <div className="text-xs text-muted-foreground">Type</div>
-              <div className="font-medium text-sm">{internship.type}</div>
+              <div className="text-xs text-muted-foreground">Modality</div>
+              <div className="font-medium text-sm">{internship.modality}</div>
             </div>
             <div className="text-center">
               <div className="text-xs text-muted-foreground">Applicants</div>
@@ -696,10 +696,10 @@ export const Applications: React.FC = () => {
                         <Card className="p-4">
                           <h4 className="font-medium mb-2">Internship Details</h4>
                           <div className="space-y-2 text-sm">
-                            <div><span className="font-medium">Duration:</span> {internship?.duration}</div>
-                            <div><span className="font-medium">Stipend:</span> {internship?.stipend}</div>
-                            <div><span className="font-medium">Type:</span> {internship?.type}</div>
-                            <div><span className="font-medium">Location:</span> {internship?.location}</div>
+                            <div><span className="font-medium">Duration:</span> {internship?.durationWeeks} weeks</div>
+                            <div><span className="font-medium">Stipend:</span> ₹{internship?.stipendMin} - ₹{internship?.stipendMax}</div>
+                            <div><span className="font-medium">Modality:</span> {internship?.modality}</div>
+                            <div><span className="font-medium">Locations:</span> {internship?.locations?.join(', ')}</div>
                           </div>
                         </Card>
 
