@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -70,7 +70,7 @@ export const Sidebar: React.FC = () => {
     <aside className="w-64 bg-card border-r h-full flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b">
-        <div className="flex items-center space-x-3">
+        <Link to="/" className="flex items-center space-x-3 focus:outline-none">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-sm">PM</span>
           </div>
@@ -78,7 +78,7 @@ export const Sidebar: React.FC = () => {
             <h2 className="font-semibold text-foreground">PM Internship</h2>
             <p className="text-xs text-muted-foreground">Smart Allocation</p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Navigation */}
