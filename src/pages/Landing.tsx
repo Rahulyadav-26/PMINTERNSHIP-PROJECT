@@ -129,11 +129,11 @@ const MagneticButton: React.FC<{
     setMousePosition({ x: x * 0.1, y: y * 0.1 });
   };
 
-  const baseClasses = "relative px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 overflow-hidden";
+  const baseClasses = "inline-flex items-center justify-center rounded-lg font-medium text-base px-6 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50";
   const variants = {
-    primary: "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-2xl",
-    secondary: "bg-gradient-to-r from-teal-500 to-blue-500 text-white shadow-lg hover:shadow-2xl",
-    outline: "border-2 border-gray-300 hover:border-blue-500 bg-white hover:bg-blue-50 text-gray-900 hover:text-blue-600"
+    primary: "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm",
+    secondary: "bg-secondary text-secondary-foreground hover:bg-secondary-hover shadow-sm",
+    outline: "border border-gray-300 bg-white text-gray-900 hover:bg-gray-50"
   };
 
   return (
@@ -155,14 +155,6 @@ const MagneticButton: React.FC<{
       whileTap={{ scale: 0.95 }}
     >
       <span className="relative z-10">{children}</span>
-      {isHovered && (
-        <motion.div
-          className="absolute inset-0 bg-white opacity-20 rounded-xl"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 0.1 }}
-          exit={{ scale: 0, opacity: 0 }}
-        />
-      )}
     </motion.button>
   );
 };
@@ -516,9 +508,9 @@ className="bg-primary rounded-2xl flex items-center justify-center shadow-2xl re
             <MagneticButton
               onClick={() => navigate('/register')}
               variant="primary"
-              className="px-6 py-3 text-base"
+              className="px-3 py-1.5 text-xs rounded-md"
             >
-              <Rocket className="w-4 h-4 mr-2" />
+              <Rocket className="w-3 h-3 mr-2" />
               Get Started
             </MagneticButton>
             
