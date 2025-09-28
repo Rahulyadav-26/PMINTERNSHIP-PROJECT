@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
-import { Application, ApplicationStatus, Consent, Internship, Offer, Preferences, Recommendation, StudentProfile, StudentState } from '@/types/student';
+import { Application, ApplicationFormData, ApplicationStatus, Consent, Internship, Offer, Preferences, Recommendation, StudentProfile, StudentState } from '@/types/student';
 import { SAMPLE_INTERNSHIPS } from '@/lib/sampleData';
 import { rankInternships } from '@/lib/matching';
 import { SKILLS } from '@/lib/skills';
 import { useAuth } from './AuthContext';
+import { formatRemaining, notify, timeRemaining } from '@/lib/utils';
 
 interface StudentContextType extends StudentState {
   setProfile: (updates: Partial<StudentProfile>) => void;
@@ -11,15 +12,25 @@ interface StudentContextType extends StudentState {
   addSkill: (skill: string) => void;
   removeSkill: (skill: string) => void;
   setSkills: (skills: string[]) => void;
+  addCertification: (cert: string) => void;
+  removeCertification: (cert: string) => void;
   setConsent: (updates: Partial<Consent>) => void;
   uploadResume: (file: File) => Promise<void>;
   extractSkillsFromText: (text: string) => string[];
-  getRecommendations: (topN?: number) => Recommendation[];
-  applyToInternship: (internship: Internship) => void;
+  getRecommendations: (topN?: number, filters?: any) => Recommendation[];
+  applyToInternship: (internship: Internship, formData?: ApplicationFormData) => void;
+  applyBulk: (internshipIds: string[], formData?: ApplicationFormData) => void;
   withdrawApplication: (applicationId: string) => void;
   simulateOffer: (applicationId: string) => void;
   acceptOffer: (applicationId: string) => void;
   declineOffer: (applicationId: string) => void;
+  toggleSave: (internshipId: string) => void;
+  isSaved: (internshipId: string) => boolean;
+  submitFeedback: (applicationId: string, internshipId: string, rating: number, comment?: string) => void;
+  updateApplicationStatus: (applicationId: string, status: ApplicationStatus) => void;
+  saveDraft: (internshipId: string, form: ApplicationFormData) => void;
+  loadDraft: (internshipId: string) => ApplicationFormData | null;
+  deleteDraft: (internshipId: string) => void;
 }
 
 const defaultPrefs: Preferences = {
@@ -48,7 +59,10 @@ type Action =
   | { type: 'REMOVE_SKILL'; payload: string }
   | { type: 'ADD_APP'; payload: Application }
   | { type: 'UPDATE_APP'; payload: Application }
-  | { type: 'SET_OFFERS'; payload: Offer[] };
+  | { type: 'SET_OFFERS'; payload: Offer[] }
+  | { type: 'TOGGLE_SAVE'; payload: string }
+  | { type: 'ADD_FEEDBACK'; payload: { id: string; applicationId: string; internshipId: string; rating: number; comment?: string; createdAt: string } }
+  | { type: 'SET_DRAFTS'; payload: NonNullable<StudentState['drafts']> };
 
 function now() { return new Date().toISOString(); }
 
@@ -84,6 +98,15 @@ function reducer(state: StudentState, action: Action): StudentState {
       return { ...state, applications: state.applications.map(a => a.id === action.payload.id ? action.payload : a) };
     case 'SET_OFFERS':
       return { ...state, offers: action.payload };
+    case 'TOGGLE_SAVE': {
+      const set = new Set(state.savedInternshipIds);
+      if (set.has(action.payload)) set.delete(action.payload); else set.add(action.payload);
+      return { ...state, savedInternshipIds: Array.from(set) };
+    }
+    case 'ADD_FEEDBACK':
+      return { ...state, feedbacks: [action.payload, ...state.feedbacks] };
+    case 'SET_DRAFTS':
+      return { ...state, drafts: action.payload };
     default:
       return state;
   }
@@ -100,6 +123,28 @@ function saveState(userId: string, state: StudentState) {
   try { localStorage.setItem(`studentState:${userId}`, JSON.stringify(state)); } catch {}
 }
 
+function scheduleDeadlineToasts(student: StudentState) {
+  // Notify for drafts or saved internships approaching deadlines within 48h and 4h
+  const targets = new Set<string>();
+  (student.savedInternshipIds || []).forEach(id => targets.add(id));
+  (student.drafts || []).forEach(d => targets.add(d.internshipId));
+  student.applications.filter(a => a.status === 'applied').forEach(a => targets.add(a.internshipId));
+
+  const byId = Object.fromEntries(SAMPLE_INTERNSHIPS.map(i => [i.id, i]));
+
+  targets.forEach(id => {
+    const intn = byId[id];
+    if (!intn?.applicationDeadline) return;
+    const d = new Date(intn.applicationDeadline).getTime();
+    const now = Date.now();
+    const in48h = d - 48 * 3600 * 1000;
+    const in4h = d - 4 * 3600 * 1000;
+
+    if (in48h > now) setTimeout(() => notify('Deadline in 48 hours', `${intn.title}: ${formatRemaining(intn.applicationDeadline)} left`), in48h - now);
+    if (in4h > now) setTimeout(() => notify('Deadline in 4 hours', `${intn.title}: ${formatRemaining(intn.applicationDeadline)} left`), in4h - now);
+  });
+}
+
 export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [state, dispatch] = useReducer(reducer, {
@@ -108,13 +153,28 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     consent: defaultConsent,
     applications: [],
     offers: [],
+    savedInternshipIds: [],
+    feedbacks: [],
+    drafts: [],
   });
 
   useEffect(() => {
     if (!user) return;
     const existing = loadState(user.id);
     if (existing) {
-      dispatch({ type: 'INIT', payload: existing });
+      // Hydrate missing fields for backward compatibility
+      const hydrated: StudentState = {
+        profile: existing.profile ?? null,
+        preferences: existing.preferences ?? defaultPrefs,
+        consent: existing.consent ?? defaultConsent,
+        applications: existing.applications ?? [],
+        offers: existing.offers ?? [],
+        savedInternshipIds: existing.savedInternshipIds ?? [],
+        feedbacks: existing.feedbacks ?? [],
+        drafts: existing.drafts ?? [],
+      };
+      dispatch({ type: 'INIT', payload: hydrated });
+      scheduleDeadlineToasts(hydrated);
     } else {
       const profile: StudentProfile = {
         id: `sp-${user.id}`,
@@ -125,7 +185,9 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         createdAt: now(),
         updatedAt: now(),
       };
-      dispatch({ type: 'INIT', payload: { profile, preferences: defaultPrefs, consent: defaultConsent, applications: [], offers: [] } });
+      const initial: StudentState = { profile, preferences: defaultPrefs, consent: defaultConsent, applications: [], offers: [], savedInternshipIds: [], feedbacks: [], drafts: [] };
+      dispatch({ type: 'INIT', payload: initial });
+      scheduleDeadlineToasts(initial);
     }
   }, [user?.id]);
 
@@ -142,6 +204,16 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     addSkill: (skill) => dispatch({ type: 'ADD_SKILL', payload: skill }),
     removeSkill: (skill) => dispatch({ type: 'REMOVE_SKILL', payload: skill }),
     setSkills: (skills) => dispatch({ type: 'SET_SKILLS', payload: skills }),
+    addCertification: (cert) => {
+      if (!state.profile) return;
+      const list = Array.from(new Set([...(state.profile.certifications || []), cert]));
+      dispatch({ type: 'SET_PROFILE', payload: { certifications: list } });
+    },
+    removeCertification: (cert) => {
+      if (!state.profile) return;
+      const list = (state.profile.certifications || []).filter(c => c !== cert);
+      dispatch({ type: 'SET_PROFILE', payload: { certifications: list } });
+    },
     setConsent: (updates) => dispatch({ type: 'SET_CONSENT', payload: updates }),
     uploadResume: async (file: File) => {
       if (!state.profile) return;
@@ -153,11 +225,11 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const found = SKILLS.filter(s => lower.includes(s.toLowerCase()));
       return Array.from(new Set(found));
     },
-    getRecommendations: (topN = 10) => {
+    getRecommendations: (topN = 10, filters?: any) => {
       const skills = state.profile?.skills || [];
-      return rankInternships(skills, state.preferences, SAMPLE_INTERNSHIPS, topN);
+      return rankInternships(skills, state.preferences, SAMPLE_INTERNSHIPS, topN, filters);
     },
-    applyToInternship: (internship: Internship) => {
+    applyToInternship: (internship: Internship, formData?: ApplicationFormData) => {
       if (!state.profile) return;
       // prevent duplicate application
       const existing = state.applications.find(a => a.internshipId === internship.id);
@@ -168,10 +240,41 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         internshipId: internship.id,
         status: 'applied',
         timeline: [{ status: 'applied', at: now() }],
+        formData,
         createdAt: now(),
         updatedAt: now(),
       };
       dispatch({ type: 'ADD_APP', payload: app });
+      notify('Application submitted', `${internship.title} • ${internship.organization}`);
+      // remove draft if exists
+      const drafts = state.drafts || [];
+      const nextDrafts = drafts.filter(d => d.internshipId !== internship.id);
+      if (drafts.length !== nextDrafts.length) dispatch({ type: 'SET_DRAFTS', payload: nextDrafts });
+    },
+    applyBulk: (internshipIds: string[], formData?: ApplicationFormData) => {
+      if (!state.profile) return;
+      const byId = Object.fromEntries(SAMPLE_INTERNSHIPS.map(i => [i.id, i]));
+      internshipIds.forEach(id => {
+        const intn = byId[id];
+        if (!intn) return;
+        const exists = state.applications.some(a => a.internshipId === id);
+        if (exists) return;
+        const app: Application = {
+          id: `app-${Date.now()}-${id}`,
+          candidateId: state.profile!.userId,
+          internshipId: id,
+          status: 'applied',
+          timeline: [{ status: 'applied', at: now() }],
+          formData,
+          createdAt: now(),
+          updatedAt: now(),
+        };
+        dispatch({ type: 'ADD_APP', payload: app });
+      });
+      notify('Bulk application submitted', `${internshipIds.length} opportunities applied`);
+      const drafts = state.drafts || [];
+      const nextDrafts = drafts.filter(d => !internshipIds.includes(d.internshipId));
+      if (drafts.length !== nextDrafts.length) dispatch({ type: 'SET_DRAFTS', payload: nextDrafts });
     },
     withdrawApplication: (applicationId: string) => {
       const app = state.applications.find(a => a.id === applicationId);
@@ -183,6 +286,8 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updatedAt: now(),
       };
       dispatch({ type: 'UPDATE_APP', payload: updated });
+      const intn = SAMPLE_INTERNSHIPS.find(i => i.id === app.internshipId);
+      notify('Application withdrawn', intn ? `${intn.title}` : undefined);
     },
     simulateOffer: (applicationId: string) => {
       const app = state.applications.find(a => a.id === applicationId);
@@ -204,7 +309,11 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
       const nextOffers = [offer, ...state.offers];
       dispatch({ type: 'SET_OFFERS', payload: nextOffers });
+      const intn = SAMPLE_INTERNSHIPS.find(i => i.id === app.internshipId);
+      notify('Offer received', intn ? `${intn.title}` : undefined);
     },
+    toggleSave: (internshipId: string) => dispatch({ type: 'TOGGLE_SAVE', payload: internshipId }),
+    isSaved: (internshipId: string) => state.savedInternshipIds.includes(internshipId),
     acceptOffer: (applicationId: string) => {
       // prevent double-acceptance
       const anyAccepted = state.offers.some(o => o.status === 'accepted');
@@ -220,6 +329,8 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       dispatch({ type: 'UPDATE_APP', payload: updatedApp });
       const offers = state.offers.map(o => o.applicationId === applicationId ? { ...o, status: 'accepted', respondedAt: now() } : o);
       dispatch({ type: 'SET_OFFERS', payload: offers });
+      const intn = SAMPLE_INTERNSHIPS.find(i => i.id === app.internshipId);
+      notify('Offer accepted', intn ? `${intn.title}` : undefined);
     },
     declineOffer: (applicationId: string) => {
       const app = state.applications.find(a => a.id === applicationId);
@@ -233,6 +344,36 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       dispatch({ type: 'UPDATE_APP', payload: updatedApp });
       const offers = state.offers.map(o => o.applicationId === applicationId ? { ...o, status: 'declined', respondedAt: now() } : o);
       dispatch({ type: 'SET_OFFERS', payload: offers });
+      const intn = SAMPLE_INTERNSHIPS.find(i => i.id === app.internshipId);
+      notify('Offer declined', intn ? `${intn.title}` : undefined);
+    },
+    submitFeedback: (applicationId, internshipId, rating, comment) => {
+      const entry = { id: `fb-${Date.now()}`, applicationId, internshipId, rating, comment, createdAt: now() };
+      dispatch({ type: 'ADD_FEEDBACK', payload: entry });
+    },
+    updateApplicationStatus: (applicationId, status) => {
+      const app = state.applications.find(a => a.id === applicationId);
+      if (!app) return;
+      const updated: Application = { ...app, status, timeline: [...app.timeline, { status, at: now() }], updatedAt: now() };
+      dispatch({ type: 'UPDATE_APP', payload: updated });
+      const intn = SAMPLE_INTERNSHIPS.find(i => i.id === app.internshipId);
+      notify(`Status updated: ${status}`, intn ? `${intn.title}` : undefined);
+    },
+    saveDraft: (internshipId, form) => {
+      if (!state.profile) return;
+      const drafts = state.drafts || [];
+      const idx = drafts.findIndex(d => d.internshipId === internshipId);
+      const draft = { id: `draft-${Date.now()}`, candidateId: state.profile.userId, internshipId, form, lastSavedAt: now() };
+      const next = idx >= 0 ? drafts.map((d, i) => (i === idx ? { ...draft, id: drafts[i].id } : d)) : [draft, ...drafts];
+      dispatch({ type: 'SET_DRAFTS', payload: next });
+    },
+    loadDraft: (internshipId) => {
+      const d = (state.drafts || []).find(x => x.internshipId === internshipId);
+      return d ? d.form : null;
+    },
+    deleteDraft: (internshipId) => {
+      const next = (state.drafts || []).filter(d => d.internshipId !== internshipId);
+      dispatch({ type: 'SET_DRAFTS', payload: next });
     },
   }), [state, user?.id]);
 

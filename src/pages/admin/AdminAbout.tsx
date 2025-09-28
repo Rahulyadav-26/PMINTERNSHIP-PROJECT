@@ -21,7 +21,7 @@ import {
 
 interface AboutProps {}
 
-export const About: React.FC<AboutProps> = () => {
+export const AdminAbout: React.FC<AboutProps> = () => {
   const systemFeatures = [
     {
       icon: Brain,
@@ -298,4 +298,4 @@ export const About: React.FC<AboutProps> = () => {
   );
 };
 
-export default About;
+export default AdminAbout;

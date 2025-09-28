@@ -20,7 +20,7 @@ import {
 
 interface FAQProps {}
 
-export const FAQ: React.FC<FAQProps> = () => {
+export const AdminFAQ: React.FC<FAQProps> = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Static FAQ data (hardcoded as requested)
@@ -362,4 +362,4 @@ export const FAQ: React.FC<FAQProps> = () => {
   );
 };
 
-export default FAQ;
+export default AdminFAQ;

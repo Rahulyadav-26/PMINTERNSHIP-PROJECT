@@ -52,8 +52,27 @@ export function scoreInternship(
   };
 }
 
-export function rankInternships(candidateSkills: string[], prefs: Preferences, internships: Internship[], topN = 10): Recommendation[] {
-  return internships
+export interface MatchFilters {
+  location?: string;
+  sector?: string;
+  modality?: 'remote' | 'onsite' | 'hybrid' | 'any';
+  minStipend?: number;
+  minDurationWeeks?: number;
+}
+
+export function rankInternships(candidateSkills: string[], prefs: Preferences, internships: Internship[], topN = 10, filters?: MatchFilters): Recommendation[] {
+  let pool = internships;
+  if (filters) {
+    pool = pool.filter(i => {
+      if (filters.location && !i.locations.includes(filters.location)) return false;
+      if (filters.sector && i.sector !== filters.sector) return false;
+      if (filters.modality && filters.modality !== 'any' && i.modality !== filters.modality) return false;
+      if (typeof filters.minStipend === 'number' && typeof i.stipendMin === 'number' && i.stipendMin < filters.minStipend) return false;
+      if (typeof filters.minDurationWeeks === 'number' && typeof i.durationWeeks === 'number' && i.durationWeeks < filters.minDurationWeeks) return false;
+      return true;
+    });
+  }
+  return pool
     .map(int => scoreInternship(candidateSkills, prefs, int))
     .sort((a, b) => b.score - a.score)
     .slice(0, topN);

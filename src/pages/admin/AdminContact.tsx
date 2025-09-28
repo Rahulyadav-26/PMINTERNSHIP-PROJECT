@@ -22,7 +22,7 @@ import {
 
 interface ContactProps {}
 
-export const Contact: React.FC<ContactProps> = () => {
+export const AdminContact: React.FC<ContactProps> = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',

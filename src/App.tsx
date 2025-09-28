@@ -8,12 +8,12 @@ import { StudentProvider } from "@/contexts/StudentContext";
 
 // Pages
 import { Landing } from "./pages/Landing";
-import { Login } from "./pages/auth/Login";
+import Login from "./pages/auth/Login";
 import { Register } from "./pages/auth/Register";
 import { StudentProfile } from "./pages/student/StudentProfile";
 import { Skills } from "./pages/student/Skills";
 import { Preferences } from "./pages/student/Preferences";
-import { Resume } from "./pages/student/Resume";
+import Resume from "./pages/student/Resume";
 import { Recommendations } from "./pages/student/Recommendations";
 import { Applications } from "./pages/student/Applications";
 import { Offers } from "./pages/student/Offers";
@@ -26,9 +26,14 @@ import { RunAllocation } from "./pages/admin/RunAllocation";
 import { ManualOverrides } from "./pages/admin/ManualOverride";
 import { Reports } from "./pages/admin/Reports";
 import { Analytics } from "./pages/admin/Analytics";
-import FAQ from "./pages/admin/FAQ";
-import About from "./pages/admin/About";
-import { Contact } from "./pages/admin/Contact";
+import AdminFAQ from "./pages/admin/AdminFAQ";
+import AdminAbout from "./pages/admin/AdminAbout";
+import { AdminContact } from "./pages/admin/AdminContact";
+import ApplicationForm from "./pages/student/ApplicationForm";
+import BulkApplicationForm from "./pages/student/BulkApplicationForm";
+import About from "./pages/About";
+import FAQ from "./pages/FAQ";
+import Feedback from "./pages/student/Feedback";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +88,8 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/faq" element={<FAQ />} />
             
             {/* Dashboard Redirect */}
             <Route path="/dashboard" element={
@@ -125,6 +132,21 @@ const App = () => (
             <Route path="/dashboard/offers" element={
               <ProtectedRoute requiredRole="student">
                 <Offers />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/apply/:internshipId" element={
+              <ProtectedRoute requiredRole="student">
+                <ApplicationForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/apply/bulk" element={
+              <ProtectedRoute requiredRole="student">
+                <BulkApplicationForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/feedback" element={
+              <ProtectedRoute requiredRole="student">
+                <Feedback />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/consent" element={
@@ -171,12 +193,12 @@ const App = () => (
             } />
             <Route path="/about" element={
               <ProtectedRoute requiredRole="admin">
-                <About />
+                <AdminAbout />
               </ProtectedRoute>
             } />
             <Route path="/contact" element={
               <ProtectedRoute requiredRole="admin">
-                <Contact />
+                <AdminContact />
               </ProtectedRoute>
             } />
             
@@ -198,3 +220,6 @@ const App = () => (
 );
 
 export default App;
+
+
+// AHMAD
