@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Upload, FileText, Sparkles, Check, X, Download, Eye, Trash2, Plus, Brain, Zap, Star, Trophy, Target } from 'lucide-react';
+import { Upload, FileText, Sparkles, Check, X, Download, Eye, Trash2, Plus, Brain, Zap, Star, Trophy, Target, Copy } from 'lucide-react';
 import { useStudent } from '@/contexts/StudentContext';
 import { toast } from '@/components/ui/sonner';
 
@@ -15,6 +15,10 @@ const Resume = () => {
   const [skills, setSkills] = useState<string[]>([]);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [extractionHistory, setExtractionHistory] = useState<any[]>([]);
+  const [ratings, setRatings] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(localStorage.getItem('skillRatings') || '{}'); } catch { return {}; }
+  });
+  const [previewText, setPreviewText] = useState<string>('');
 
   const { profile, addSkill: addSkillCtx, removeSkill: removeSkillCtx, setSkills: setSkillsCtx, uploadResume, extractSkillsFromText } = useStudent();
 
@@ -26,6 +30,27 @@ const Resume = () => {
       setSkills(['React', 'TypeScript', 'Node.js', 'Python']);
     }
   }, [profile?.skills]);
+
+  useEffect(() => {
+    try { localStorage.setItem('skillRatings', JSON.stringify(ratings)); } catch {}
+  }, [ratings]);
+
+  useEffect(() => {
+    // Try to load text preview from uploaded resume if text/*
+    const loadPreview = async () => {
+      setPreviewText('');
+      if (!profile?.resumeUrl) return;
+      try {
+        const res = await fetch(profile.resumeUrl);
+        const blob = await res.blob();
+        if (blob.type.startsWith('text/')) {
+          const txt = await blob.text();
+          setPreviewText(txt.slice(0, 4000));
+        }
+      } catch {}
+    };
+    loadPreview();
+  }, [profile?.resumeUrl]);
 
   const handleDrag = useCallback((e) => {
     e.preventDefault();
@@ -84,6 +109,10 @@ const Resume = () => {
     });
   };
 
+  const updateRating = (skill: string, value: number) => {
+    setRatings(prev => ({ ...prev, [skill]: value }));
+  };
+
   const onExtract = async () => {
     // Prefer pasted text; if none, try to read uploaded file if it is text/*
     let sourceText = text.trim();
@@ -115,6 +144,38 @@ const Resume = () => {
       if (!found.length) toast('No skills detected', { description: 'Try refining the text or add keywords.' });
     }, 700);
   };
+
+  const onExtractFromPreview = async () => {
+    if (!previewText) {
+      toast('No preview text available', { description: 'Upload a TXT resume or paste text into the box.' });
+      return;
+    }
+    const found = extractSkillsFromText(previewText);
+    setExtracted(found);
+    setExtractionHistory(prev => [...prev, {
+      timestamp: new Date(),
+      skillCount: found.length,
+      text: previewText.substring(0, 100) + '...'
+    }]);
+    if (!found.length) toast('No skills detected', { description: 'Try refining the text or add keywords.' });
+  };
+
+  const copyExtracted = async () => {
+    try {
+      await navigator.clipboard.writeText(extracted.join(', '));
+      toast('Copied extracted skills');
+    } catch {
+      toast('Copy failed', { description: 'Your browser blocked clipboard access.' });
+    }
+  };
+
+  const addNewOnly = () => {
+    const news = extracted.filter(s => !skills.includes(s));
+    news.forEach(addSkill);
+    setExtracted(extracted.filter(s => skills.includes(s)));
+  };
+
+  const clearExtracted = () => setExtracted([]);
 
   const addSkill = (skill: string) => {
     if (!skills.includes(skill)) {
@@ -303,7 +364,7 @@ const Resume = () => {
               )}
 
               {profile?.resumeUrl && (
-                <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl border border-green-200">
+                <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl border border-green-200 space-y-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -343,6 +404,25 @@ const Resume = () => {
                       </button>
                     </div>
                   </div>
+
+                  {/* Inline preview for PDFs or text */}
+                  {String(profile?.resumeName || '').toLowerCase().endsWith('.pdf') ? (
+                    <div className="w-full h-96 rounded-lg overflow-hidden border">
+                      <iframe src={profile?.resumeUrl as string} title="Resume PDF Preview" className="w-full h-full" />
+                    </div>
+                  ) : (
+                    previewText && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-700">Text Preview</p>
+                          <button onClick={onExtractFromPreview} className="text-purple-700 border border-purple-200 px-3 py-1 rounded-lg hover:bg-purple-50 flex items-center gap-1">
+                            <Sparkles className="w-4 h-4" /> Extract from Preview
+                          </button>
+                        </div>
+                        <pre className="max-h-64 overflow-auto p-3 bg-white/70 rounded-lg border text-xs whitespace-pre-wrap">{previewText}</pre>
+                      </div>
+                    )
+                  )}
                 </div>
               )}
             </div>
@@ -365,13 +445,21 @@ const Resume = () => {
                 {skills.map((skill, index) => (
                   <div 
                     key={skill}
-                    className="group flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl px-4 py-2 hover:shadow-md transition-all duration-300 animate-fadeIn"
+                    className="group flex items-center space-x-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl px-4 py-2 hover:shadow-md transition-all duration-300 animate-fadeIn"
                     style={{animationDelay: `${index * 0.1}s`}}
                   >
                     <span className="font-medium text-gray-700">{skill}</span>
+                    <div className="flex items-center gap-1">
+                      {[1,2,3,4,5].map(n => (
+                        <button key={n} onClick={() => updateRating(skill, n)} className={n <= (ratings[skill] || 0) ? 'text-yellow-500' : 'text-gray-300'} title={`Set ${skill} to ${n} star${n>1?'s':''}`}>
+                          <Star className="w-4 h-4" />
+                        </button>
+                      ))}
+                    </div>
                     <button
                       onClick={() => removeSkill(skill)}
                       className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                      title="Remove"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -408,10 +496,10 @@ const Resume = () => {
                   />
                 </div>
                 
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={onExtract}
-                    disabled={!text.trim() || extracting}
+                    disabled={extracting || (!text.trim() && !resumeFile)}
                     className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                   >
                     {extracting ? (
@@ -426,15 +514,51 @@ const Resume = () => {
                       </>
                     )}
                   </button>
-                  
+
+                  <button
+                    onClick={onExtractFromPreview}
+                    disabled={!previewText}
+                    className="flex items-center space-x-2 bg-white text-purple-600 border border-purple-200 px-4 py-2 rounded-lg hover:bg-purple-50 disabled:opacity-50 transition-all"
+                    title="Extract from uploaded text preview"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>From Preview</span>
+                  </button>
+
                   {extracted.length > 0 && (
-                    <button
-                      onClick={addAll}
-                      className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-blue-600 text-white px-6 py-3 rounded-xl hover:from-green-600 hover:to-blue-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add All ({extracted.length})</span>
-                    </button>
+                    <>
+                      <button
+                        onClick={addAll}
+                        className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-blue-600 text-white px-6 py-3 rounded-xl hover:from-green-600 hover:to-blue-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add All ({extracted.length})</span>
+                      </button>
+                      <button
+                        onClick={addNewOnly}
+                        className="flex items-center space-x-2 bg-white text-green-700 border border-green-200 px-4 py-2 rounded-lg hover:bg-green-50 transition-all"
+                        title="Add only new skills"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add New Only</span>
+                      </button>
+                      <button
+                        onClick={copyExtracted}
+                        className="flex items-center space-x-2 bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all"
+                        title="Copy extracted skills"
+                      >
+                        <Copy className="w-4 h-4" />
+                        <span>Copy</span>
+                      </button>
+                      <button
+                        onClick={clearExtracted}
+                        className="flex items-center space-x-2 bg-white text-red-700 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-50 transition-all"
+                        title="Clear extracted list"
+                      >
+                        <X className="w-4 h-4" />
+                        <span>Clear</span>
+                      </button>
+                    </>
                   )}
                 </div>
                 
@@ -466,6 +590,44 @@ const Resume = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Smart Suggestions */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-white/50">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">Smart Suggestions</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[
+                  { title: 'Frontend', items: ['React','TypeScript','HTML','CSS','Tailwind CSS'] },
+                  { title: 'Backend', items: ['Node.js','Express','SQL','REST'] },
+                  { title: 'Data & AI', items: ['Python','Pandas','Machine Learning','Data Analysis'] },
+                  { title: 'Cloud & DevOps', items: ['Docker','AWS','Git','CI/CD'] },
+                  { title: 'Soft Skills', items: ['Communication','Teamwork','Leadership','Problem Solving'] },
+                ].map((group) => (
+                  <div key={group.title} className="p-4 rounded-xl border bg-white/70">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-gray-800">{group.title}</h4>
+                      <button
+                        onClick={() => group.items.filter(s => !skills.includes(s)).forEach(addSkill)}
+                        className="text-xs text-blue-700 border border-blue-200 px-2 py-1 rounded hover:bg-blue-50"
+                      >
+                        Add All
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {group.items.map(s => (
+                        <button key={s} onClick={() => addSkill(s)} disabled={skills.includes(s)} className={`px-2 py-1 rounded-lg border text-xs ${skills.includes(s) ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'}`}>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
