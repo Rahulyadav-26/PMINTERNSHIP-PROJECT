@@ -21,6 +21,14 @@ import { Consent } from "./pages/student/Consent";
 import { AdminData } from "./pages/admin/AdminData";
 import { MinistryBias } from "./pages/ministry/MinistryBias";
 import NotFound from "./pages/NotFound";
+import {AllocationRules} from "./pages/admin/AllocationRules";
+import { RunAllocation } from "./pages/admin/RunAllocation";
+import { ManualOverrides } from "./pages/admin/ManualOverride";
+import { Reports } from "./pages/admin/Reports";
+import { Analytics } from "./pages/admin/Analytics";
+import FAQ from "./pages/admin/FAQ";
+import About from "./pages/admin/About";
+import { Contact } from "./pages/admin/Contact";
 
 const queryClient = new QueryClient();
 
@@ -131,6 +139,46 @@ const App = () => (
                 <AdminData />
               </ProtectedRoute>
             } />
+            <Route path="/admin/rules" element={
+              <ProtectedRoute requiredRole="admin">
+                <AllocationRules />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/allocation" element={
+              <ProtectedRoute requiredRole="admin">
+                <RunAllocation />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/overrides" element={
+              <ProtectedRoute requiredRole="admin">
+                <ManualOverrides />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/reports" element={
+              <ProtectedRoute requiredRole="admin">
+                <Reports />
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute requiredRole="admin">
+                <Analytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/faq" element={
+              <ProtectedRoute requiredRole="admin">
+                <FAQ />
+              </ProtectedRoute>
+            } />
+            <Route path="/about" element={
+              <ProtectedRoute requiredRole="admin">
+                <About />
+              </ProtectedRoute>
+            } />
+            <Route path="/contact" element={
+              <ProtectedRoute requiredRole="admin">
+                <Contact />
+              </ProtectedRoute>
+            } />
             
             {/* Ministry Routes */}
             <Route path="/ministry/bias" element={
@@ -150,6 +198,3 @@ const App = () => (
 );
 
 export default App;
-
-
-// AHMAD
