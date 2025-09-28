@@ -21,11 +21,20 @@ import { Consent } from "./pages/student/Consent";
 import { AdminData } from "./pages/admin/AdminData";
 import { MinistryBias } from "./pages/ministry/MinistryBias";
 import NotFound from "./pages/NotFound";
+import {AllocationRules} from "./pages/admin/AllocationRules";
+import { RunAllocation } from "./pages/admin/RunAllocation";
+import { ManualOverrides } from "./pages/admin/ManualOverride";
+import { Reports } from "./pages/admin/Reports";
+import { Analytics } from "./pages/admin/Analytics";
+import AdminFAQ from "./pages/admin/AdminFAQ";
+import AdminAbout from "./pages/admin/AdminAbout";
+import { AdminContact } from "./pages/admin/AdminContact";
 import ApplicationForm from "./pages/student/ApplicationForm";
 import BulkApplicationForm from "./pages/student/BulkApplicationForm";
 import About from "./pages/About";
 import FAQ from "./pages/FAQ";
 import Feedback from "./pages/student/Feedback";
+import AllocationResults from "./pages/student/AllocationResults";
 
 const queryClient = new QueryClient();
 
@@ -136,6 +145,11 @@ const App = () => (
                 <BulkApplicationForm />
               </ProtectedRoute>
             } />
+            <Route path="/dashboard/results" element={
+              <ProtectedRoute requiredRole="student">
+                <AllocationResults />
+              </ProtectedRoute>
+            } />
             <Route path="/dashboard/feedback" element={
               <ProtectedRoute requiredRole="student">
                 <Feedback />
@@ -151,6 +165,46 @@ const App = () => (
             <Route path="/admin/data" element={
               <ProtectedRoute requiredRole="admin">
                 <AdminData />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/rules" element={
+              <ProtectedRoute requiredRole="admin">
+                <AllocationRules />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/allocation" element={
+              <ProtectedRoute requiredRole="admin">
+                <RunAllocation />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/overrides" element={
+              <ProtectedRoute requiredRole="admin">
+                <ManualOverrides />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/reports" element={
+              <ProtectedRoute requiredRole="admin">
+                <Reports />
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute requiredRole="admin">
+                <Analytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/faq" element={
+              <ProtectedRoute requiredRole="admin">
+                <FAQ />
+              </ProtectedRoute>
+            } />
+            <Route path="/about" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminAbout />
+              </ProtectedRoute>
+            } />
+            <Route path="/contact" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminContact />
               </ProtectedRoute>
             } />
             
