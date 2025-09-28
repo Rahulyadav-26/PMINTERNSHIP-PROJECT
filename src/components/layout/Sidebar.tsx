@@ -29,7 +29,13 @@ interface SidebarItem {
 const sidebarItems: SidebarItem[] = [
   // Student Routes
   { name: 'Profile', href: '/dashboard/profile', icon: User, roles: ['student'] },
+  { name: 'Skills', href: '/dashboard/skills', icon: BookOpen, roles: ['student'] },
+  { name: 'Preferences', href: '/dashboard/preferences', icon: Target, roles: ['student'] },
+  { name: 'Resume', href: '/dashboard/resume', icon: FileText, roles: ['student'] },
+  { name: 'Recommendations', href: '/dashboard/recommendations', icon: Activity, roles: ['student'] },
   { name: 'Applications', href: '/dashboard/applications', icon: FileText, roles: ['student'] },
+  { name: 'Offers', href: '/dashboard/offers', icon: Users, roles: ['student'] },
+  { name: 'Consent', href: '/dashboard/consent', icon: Shield, roles: ['student'] },
   { name: 'Allocation Results', href: '/dashboard/results', icon: Target, roles: ['student'] },
   { name: 'Feedback', href: '/dashboard/feedback', icon: MessageSquare, roles: ['student'] },
   
