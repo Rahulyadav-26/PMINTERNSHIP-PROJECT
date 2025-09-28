@@ -27,11 +27,11 @@ export const StudentProfile: React.FC = () => {
     profileStrength: 75,
     skills: ['React', 'JavaScript', 'Python', 'Node.js', 'MongoDB'],
     missingSkills: ['Docker', 'AWS', 'Machine Learning'],
-    university: 'Indian Institute of Technology',
-    course: 'B.Tech Computer Science',
+    university: 'Jabalpur Engineering College, Jabalpur',
+    course: 'B.Tech Electronics and Communication Engineering',
     year: '3rd Year',
-    enrollmentId: 'IIT2021CS001',
-    gpa: 8.5,
+    enrollmentId: '0201EC231008',
+    gpa: 6.1,
     resumeUploaded: true,
   };
 
