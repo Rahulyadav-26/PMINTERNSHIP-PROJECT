@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { useStudent } from '@/contexts/StudentContext';
+import { extractTextFromBlob, extractTextFromFile } from '@/lib/fileExtractors';
 import { toast } from '@/components/ui/sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -94,6 +96,8 @@ const Resume = () => {
   const [previewText, setPreviewText] = useState<string>('');
 
   const { profile, addSkill: addSkillCtx, removeSkill: removeSkillCtx, setSkills: setSkillsCtx, uploadResume, extractSkillsFromText } = useStudent();
+  const [appendMode, setAppendMode] = useState(false);
+  const [extractionBanner, setExtractionBanner] = useState<string | null>(null);
 
   useEffect(() => {
     // Initialize local skills from context profile if available, else defaults
@@ -109,21 +113,32 @@ const Resume = () => {
   }, [ratings]);
 
   useEffect(() => {
-    // Try to load text preview from uploaded resume if text/*
+    // Try to load text preview from uploaded resume and optionally auto-paste
     const loadPreview = async () => {
       setPreviewText('');
       if (!profile?.resumeUrl) return;
       try {
         const res = await fetch(profile.resumeUrl);
         const blob = await res.blob();
-        if (blob.type.startsWith('text/')) {
-          const txt = await blob.text();
-          setPreviewText(txt.slice(0, 4000));
+        const txt = await extractTextFromBlob(blob, profile?.resumeName || '');
+        if (txt) {
+          const snippet = txt.slice(0, 4000);
+          setPreviewText(snippet);
+          const name = String(profile?.resumeName || '').toLowerCase();
+          const isPdf = name.endsWith('.pdf') || blob.type === 'application/pdf';
+          const isDocx = name.endsWith('.docx') || blob.type.includes('officedocument');
+          if (appendMode) {
+            setText(prev => (prev ? prev + "\n\n" : '') + snippet);
+            if (isPdf || isDocx) setExtractionBanner(`Text extracted from your ${isPdf ? 'PDF' : 'DOCX'} and appended below.`);
+          } else if (!text.trim()) {
+            setText(snippet);
+            if (isPdf || isDocx) setExtractionBanner(`Text extracted from your ${isPdf ? 'PDF' : 'DOCX'} and pasted below.`);
+          }
         }
       } catch {}
     };
     loadPreview();
-  }, [profile?.resumeUrl]);
+  }, [profile?.resumeUrl, appendMode]);
 
   const handleDrag = useCallback((e) => {
     e.preventDefault();
@@ -161,6 +176,24 @@ const Resume = () => {
       setUploading(false);
       setUploadSuccess(true);
       
+      // Auto-paste extracted text (supports TXT/PDF/DOCX)
+      try {
+        const txt = await extractTextFromFile(file);
+        if (txt) {
+          const snippet = txt.slice(0, 4000);
+          const lower = (file.name || '').toLowerCase();
+          const isPdf = lower.endsWith('.pdf') || file.type === 'application/pdf';
+          const isDocx = lower.endsWith('.docx') || file.type.includes('officedocument');
+          if (appendMode) {
+            setText(prev => (prev ? prev + "\n\n" : '') + snippet);
+            if (isPdf || isDocx) setExtractionBanner(`Text extracted from your ${isPdf ? 'PDF' : 'DOCX'} and appended below.`);
+          } else {
+            setText(snippet);
+            if (isPdf || isDocx) setExtractionBanner(`Text extracted from your ${isPdf ? 'PDF' : 'DOCX'} and pasted below.`);
+          }
+        }
+      } catch {}
+      
       // Auto-hide success message
       setTimeout(() => setUploadSuccess(false), 3000);
     }, 500);
@@ -187,8 +220,13 @@ const Resume = () => {
   };
 
   const onExtract = async () => {
-    // Prefer pasted text; if none, try to read uploaded file if it is text/*
+    // Use pasted text if available; otherwise prefer previewText; otherwise read uploaded text file.
     let sourceText = text.trim();
+
+    if (!sourceText && previewText) {
+      sourceText = previewText.trim();
+    }
+
     if (!sourceText && resumeFile) {
       if (resumeFile.type.startsWith('text/')) {
         try {
@@ -200,7 +238,11 @@ const Resume = () => {
         toast('File extraction not supported', { description: 'For PDF/DOCX, please paste text into the box and click Extract.' });
       }
     }
+
     if (!sourceText) return;
+
+    // Reflect the resume text in the AI extraction textarea to make it visible to the user
+    if (!text.trim()) setText(sourceText);
 
     setExtracting(true);
 
@@ -295,6 +337,13 @@ const Resume = () => {
       document.removeEventListener("drop", handleDrop);
     };
   }, [handleDrag, handleDrop]);
+
+  // Auto-hide banner after a few seconds
+  useEffect(() => {
+    if (!extractionBanner) return;
+    const t = setTimeout(() => setExtractionBanner(null), 4000);
+    return () => clearTimeout(t);
+  }, [extractionBanner]);
 
   return (
     <DashboardLayout title="Resume & Skills Hub">
@@ -547,18 +596,34 @@ const Resume = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
+                {extractionBanner && (
+                  <AnimatePresence>
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="p-3 rounded-lg border bg-blue-50 border-blue-200 text-blue-800 text-sm"
+                    >
+                      {extractionBanner}
+                    </motion.div>
+                  </AnimatePresence>
+                )}
+                <div className="flex items-center justify-between">
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Paste your resume text
                   </label>
-                  <Textarea
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Switch checked={appendMode} onCheckedChange={(v) => setAppendMode(v === true)} id="append-mode" />
+                    <label htmlFor="append-mode">Append when auto-pasting</label>
+                  </div>
+                </div>
+                <Textarea
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     placeholder="Paste your resume content here... I'll intelligently detect all your skills and technologies!"
                     rows={8}
                     className="resize-none"
                   />
-                </div>
                 
                 <div className="flex flex-wrap items-center gap-3">
                   <Button
@@ -655,58 +720,73 @@ const Resume = () => {
               </CardContent>
             </Card>
 
-            {/* Smart Suggestions Card */}
-            <Card className="border-0 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <span>Smart Suggestions</span>
-                </CardTitle>
-                <CardDescription>
-                  Popular skills in different categories to enhance your profile
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-4">
-                  {[
-                    { title: 'Frontend', items: ['React','TypeScript','HTML','CSS','Tailwind CSS'], color: 'blue' },
-                    { title: 'Backend', items: ['Node.js','Express','SQL','REST'], color: 'green' },
-                    { title: 'Data & AI', items: ['Python','Pandas','Machine Learning','Data Analysis'], color: 'purple' },
-                    { title: 'Cloud & DevOps', items: ['Docker','AWS','Git','CI/CD'], color: 'amber' },
-                    { title: 'Soft Skills', items: ['Communication','Teamwork','Leadership','Problem Solving'], color: 'pink' },
-                  ].map((group) => (
-                    <div key={group.title} className="p-4 rounded-xl border bg-white/70">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-gray-800">{group.title}</h4>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => group.items.filter(s => !skills.includes(s)).forEach(addSkill)}
-                        >
-                          Add All
-                        </Button>
+            {/* Smart Suggestions Card (shows after first extraction) */}
+            {extractionHistory.length > 0 && (
+              <AnimatePresence>
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 16 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <Card className="border-0 shadow-2xl overflow-hidden">
+                    <CardHeader className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 opacity-90" />
+                      <div className="relative z-10 flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-3 text-white">
+                          <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
+                            <Sparkles className="w-5 h-5 text-white" />
+                          </div>
+                          <span>Smart Suggestions</span>
+                        </CardTitle>
+                        <Badge className="bg-white/20 text-white border-white/30">Personalized</Badge>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {group.items.map(s => (
-                          <Button
-                            key={s}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addSkill(s)}
-                            disabled={skills.includes(s)}
-                            className={`h-8 text-xs ${skills.includes(s) ? 'opacity-50' : 'hover:bg-blue-50'}`}
-                          >
-                            {s}
-                          </Button>
+                      <CardDescription className="relative z-10 text-white/90 pt-2">
+                        Popular skills across categories to quickly enhance your profile
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="bg-white">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        {[
+                          { title: 'Frontend', items: ['React','TypeScript','HTML','CSS','Tailwind CSS'], gradient: 'from-blue-50 to-cyan-50', chip: 'hover:bg-blue-50', ring: 'ring-blue-100' },
+                          { title: 'Backend', items: ['Node.js','Express','SQL','REST'], gradient: 'from-emerald-50 to-green-50', chip: 'hover:bg-emerald-50', ring: 'ring-emerald-100' },
+                          { title: 'Data & AI', items: ['Python','Pandas','Machine Learning','Data Analysis'], gradient: 'from-purple-50 to-fuchsia-50', chip: 'hover:bg-purple-50', ring: 'ring-purple-100' },
+                          { title: 'Cloud & DevOps', items: ['Docker','AWS','Git','CI/CD'], gradient: 'from-amber-50 to-yellow-50', chip: 'hover:bg-amber-50', ring: 'ring-amber-100' },
+                          { title: 'Soft Skills', items: ['Communication','Teamwork','Leadership','Problem Solving'], gradient: 'from-pink-50 to-rose-50', chip: 'hover:bg-pink-50', ring: 'ring-rose-100' },
+                        ].map((group) => (
+                          <div key={group.title} className={`p-5 rounded-xl border border-gray-200 bg-gradient-to-br ${group.gradient} ring-1 ${group.ring}`}>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-semibold text-gray-900">{group.title}</h4>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => group.items.filter(s => !skills.includes(s)).forEach(addSkill)}
+                                className="border-gray-300 hover:border-gray-400"
+                              >
+                                Add All
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {group.items.map(s => (
+                                <button
+                                  key={s}
+                                  onClick={() => !skills.includes(s) && addSkill(s)}
+                                  disabled={skills.includes(s)}
+                                  className={`px-3 h-8 rounded-full border text-xs font-medium transition-colors ${skills.includes(s) ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : `bg-white/80 text-gray-700 border-gray-200 ${group.chip}`}`}
+                                  title={skills.includes(s) ? 'Already added' : 'Add skill'}
+                                >
+                                  {s}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </AnimatePresence>
+            )}
 
             {/* Extraction History Card */}
             {extractionHistory.length > 0 && (

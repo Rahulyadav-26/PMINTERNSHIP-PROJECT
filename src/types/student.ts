@@ -23,6 +23,8 @@ export interface StudentProfile {
   skills: string[]; // hard + soft combined
   resumeUrl?: string; // object URL or remote URL
   resumeName?: string;
+  avatarUrl?: string; // object URL or remote URL for profile image
+  avatarScale?: number; // preferred avatar size in px (e.g., 64-160)
   createdAt: string;
   updatedAt: string;
 }
@@ -114,6 +116,7 @@ export interface Offer {
 export interface RecommendationExplanation {
   reason: string;      // human-readable
   weight?: number;     // optional numeric contribution
+  kind?: 'skill' | 'location' | 'sector' | 'modality' | 'preference' | 'deadline' | 'capacity';
 }
 
 export interface Recommendation {

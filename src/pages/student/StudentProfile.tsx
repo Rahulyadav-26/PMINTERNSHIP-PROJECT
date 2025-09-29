@@ -21,6 +21,8 @@ import {
   FileText, Clock, Building2, GraduationCap, Trophy
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStudent } from '@/contexts/StudentContext';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import * as THREE from 'three';
 
 // Enhanced Analytics Panel Component (following Applications pattern)
@@ -200,8 +202,15 @@ function CircularProgress({ percentage }: { percentage: number }) {
 
 export const StudentProfile: React.FC = () => {
   const { user } = useAuth();
+  const { profile, setProfile } = useStudent();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1.2);
   const [activeTab, setActiveTab] = useState('overview');
   const [editMode, setEditMode] = useState(false);
+
+  // Local UI-only extras
   const [profileData, setProfileData] = useState({
     bio: "Passionate electronics engineering student with expertise in emerging technologies and sustainable innovation.",
     location: "Jabalpur, Madhya Pradesh, India",
@@ -210,17 +219,65 @@ export const StudentProfile: React.FC = () => {
     github: "https://github.com/johndoe"
   });
 
-  // Enhanced student data
+  // Edit form state mapped to StudentProfile fields
+  const [form, setForm] = useState({
+    name: '',
+    university: '',
+    course: '',
+    stream: '',
+    year: '',
+    gpa: '',
+    graduationYear: '',
+    enrollmentId: '',
+  });
+
+  useEffect(() => {
+    // Initialize form from profile when available or when toggling edit mode on
+    if (profile) {
+      setForm({
+        name: profile.name || '',
+        university: profile.university || '',
+        course: profile.course || '',
+        stream: profile.stream || '',
+        year: profile.year || '',
+        gpa: typeof profile.gpa === 'number' ? String(profile.gpa) : '',
+        graduationYear: typeof profile.graduationYear === 'number' ? String(profile.graduationYear) : '',
+        enrollmentId: profile.enrollmentId || '',
+      });
+    }
+  }, [profile, editMode]);
+
+  // Simple profile strength computation based on filled fields
+  const computedProfileStrength = useMemo(() => {
+    const fields = [
+      profile?.name,
+      profile?.email,
+      profile?.university,
+      profile?.course,
+      profile?.year,
+      profile?.gpa,
+      profile?.enrollmentId,
+      (profile?.skills || []).length > 0 ? 'skills' : ''
+    ];
+    const filled = fields.filter(Boolean).length;
+    const total = fields.length;
+    return Math.round((filled / total) * 100) || 0;
+  }, [profile?.name, profile?.email, profile?.university, profile?.course, profile?.year, profile?.gpa, profile?.enrollmentId, profile?.skills]);
+
+  // Avatar size preference
+  const avatarSize = Math.min(160, Math.max(64, profile?.avatarScale || 128));
+
+  // Enhanced student data using context profile where possible
   const studentData = {
-    profileStrength: 78,
-    skills: ['React', 'JavaScript', 'Python', 'Node.js', 'MongoDB', 'C++', 'Git', 'Figma', 'TypeScript', 'AWS'],
+    profileStrength: computedProfileStrength,
+    skills: profile?.skills || [],
     missingSkills: ['Docker', 'Kubernetes', 'Machine Learning', 'GraphQL', 'Redis', 'Microservices'],
-    university: 'Jabalpur Engineering College, Jabalpur',
-    course: 'B.Tech Electronics and Communication Engineering',
-    year: '3rd Year',
-    enrollmentId: '0201EC231008',
-    gpa: 8.5,
-    resumeUploaded: true,
+    university: profile?.university || '—',
+    course: profile?.course || '—',
+    year: profile?.year || '—',
+    enrollmentId: profile?.enrollmentId || '—',
+    gpa: typeof profile?.gpa === 'number' ? profile!.gpa : 0,
+    resumeUploaded: !!profile?.resumeUrl,
     achievements: [
       { 
         title: 'Hackathon Champion', 
@@ -293,15 +350,32 @@ export const StudentProfile: React.FC = () => {
                 transition={{ type: "spring", stiffness: 300 }}
               >
                 <div className="relative">
-                  <Avatar className="h-32 w-32 border-4 border-white shadow-xl">
-                    <AvatarImage src={user?.profileImage} />
+                  <Avatar className="border-4 border-white shadow-xl" style={{ width: avatarSize, height: avatarSize }}>
+                    <AvatarImage src={profile?.avatarUrl || (user as any)?.profileImage} alt={profile?.name || user?.name || 'Profile'} />
                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-teal-500 text-white text-4xl font-bold">
-                      {user?.name?.charAt(0) || 'S'}
+                      {(profile?.name || user?.name || 'S').charAt(0)}
                     </AvatarFallback>
                   </Avatar>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const max = 5 * 1024 * 1024;
+                      if (file.size > max) return;
+                      const url = URL.createObjectURL(file);
+                      setPendingImageUrl(url);
+                      setZoom(1.2);
+                      setCropOpen(true);
+                    }}
+                  />
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={() => avatarInputRef.current?.click()}
                     className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-lg border-2 border-gray-100 hover:border-blue-400 transition-colors"
                   >
                     <Camera className="w-4 h-4 text-gray-600" />
@@ -312,7 +386,7 @@ export const StudentProfile: React.FC = () => {
               <div className="flex-1 space-y-6">
                 <div className="space-y-2">
                   <h1 className="text-4xl font-bold text-gray-900">
-                    {user?.name || "John Doe"}
+                    {profile?.name || user?.name || "Student"}
                   </h1>
                   <p className="text-xl text-gray-600 font-medium">
                     {studentData.course}
@@ -327,7 +401,7 @@ export const StudentProfile: React.FC = () => {
                     <School className="h-5 w-5 text-blue-600" />
                     <div>
                       <p className="text-sm font-medium text-blue-900">University</p>
-                      <p className="text-xs text-blue-700">JEC, Jabalpur</p>
+                      <p className="text-xs text-blue-700">{profile?.university || '—'}</p>
                     </div>
                   </div>
                   
@@ -350,13 +424,62 @@ export const StudentProfile: React.FC = () => {
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  onClick={() => setEditMode(!editMode)}
-                  className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  {editMode ? 'Save Changes' : 'Edit Profile'}
-                </Button>
+                <div className="flex gap-3">
+                  {!editMode ? (
+                    <Button 
+                      onClick={() => setEditMode(true)}
+                      className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <Edit3 className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                  ) : (
+                    <>
+                      <Button 
+                        onClick={() => {
+                          const updates: any = {
+                            name: form.name.trim() || undefined,
+                            university: form.university.trim() || undefined,
+                            course: form.course.trim() || undefined,
+                            stream: form.stream.trim() || undefined,
+                            year: form.year.trim() || undefined,
+                            enrollmentId: form.enrollmentId.trim() || undefined,
+                          };
+                          const gpaNum = parseFloat(form.gpa);
+                          if (!Number.isNaN(gpaNum)) updates.gpa = gpaNum;
+                          const gradNum = parseInt(form.graduationYear, 10);
+                          if (!Number.isNaN(gradNum)) updates.graduationYear = gradNum;
+                          setProfile(updates);
+                          setEditMode(false);
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        Save Changes
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          // reset form from current profile and exit edit mode
+                          if (profile) {
+                            setForm({
+                              name: profile.name || '',
+                              university: profile.university || '',
+                              course: profile.course || '',
+                              stream: profile.stream || '',
+                              year: profile.year || '',
+                              gpa: typeof profile.gpa === 'number' ? String(profile.gpa) : '',
+                              graduationYear: typeof profile.graduationYear === 'number' ? String(profile.graduationYear) : '',
+                              enrollmentId: profile.enrollmentId || '',
+                            });
+                          }
+                          setEditMode(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+                </div>
                 <Button variant="outline" className="border-2 hover:border-blue-400 hover:bg-blue-50">
                   <Share2 className="w-4 h-4 mr-2" />
                   Share Profile
@@ -365,6 +488,162 @@ export const StudentProfile: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Crop/Zoom Dialog */}
+        <Dialog open={cropOpen} onOpenChange={(open) => {
+          if (!open) {
+            if (pendingImageUrl) URL.revokeObjectURL(pendingImageUrl);
+            setPendingImageUrl(null);
+            setCropOpen(false);
+          } else {
+            setCropOpen(true);
+          }
+        }}>
+          <DialogContent className="sm:max-w-[540px]">
+            <DialogHeader>
+              <DialogTitle>Adjust profile photo</DialogTitle>
+              <DialogDescription>Zoom to crop the image to a square. The center will be used.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="mx-auto w-[360px] h-[360px] bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                {pendingImageUrl ? (
+                  <img
+                    src={pendingImageUrl}
+                    alt="Crop preview"
+                    className="select-none pointer-events-none"
+                    style={{
+                      width: 'auto',
+                      height: '100%',
+                      transform: `scale(${zoom})`,
+                      objectFit: 'cover',
+                    }}
+                  />
+                ) : (
+                  <div className="text-gray-500 text-sm">No image selected</div>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                  <span>Zoom</span>
+                  <span>{zoom.toFixed(2)}x</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.02}
+                  value={zoom}
+                  onChange={(e) => setZoom(parseFloat(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                if (pendingImageUrl) URL.revokeObjectURL(pendingImageUrl);
+                setPendingImageUrl(null);
+                setCropOpen(false);
+              }}>Cancel</Button>
+              <Button
+                onClick={async () => {
+                  if (!pendingImageUrl) return;
+                  const img = new Image();
+                  img.crossOrigin = 'anonymous';
+                  img.src = pendingImageUrl;
+                  await new Promise(resolve => { img.onload = resolve; });
+                  const iw = img.naturalWidth || img.width;
+                  const ih = img.naturalHeight || img.height;
+                  const size = 512; // output square
+                  const s0 = size / Math.min(iw, ih);
+                  const scale = s0 * zoom;
+                  const dw = iw * scale;
+                  const dh = ih * scale;
+                  const dx = (size - dw) / 2;
+                  const dy = (size - dh) / 2;
+                  const canvas = document.createElement('canvas');
+                  canvas.width = size;
+                  canvas.height = size;
+                  const ctx = canvas.getContext('2d');
+                  if (!ctx) return;
+                  ctx.fillStyle = '#ffffff';
+                  ctx.fillRect(0, 0, size, size);
+                  ctx.drawImage(img, dx, dy, dw, dh);
+                  canvas.toBlob((blob) => {
+                    if (!blob) return;
+                    const url = URL.createObjectURL(blob);
+                    setProfile({ avatarUrl: url });
+                    // cleanup previous pending url
+                    if (pendingImageUrl) URL.revokeObjectURL(pendingImageUrl);
+                    setPendingImageUrl(null);
+                    setCropOpen(false);
+                  }, 'image/png');
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Save Photo
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Form */}
+        {editMode && (
+          <Card className="border-0 shadow-xl">
+            <CardHeader>
+              <CardTitle>Edit Profile</CardTitle>
+              <CardDescription>Update your basic information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={profile?.avatarUrl || (user as any)?.profileImage} alt={profile?.name || user?.name || 'Profile'} />
+                  <AvatarFallback className="text-xl">{(profile?.name || user?.name || 'S').charAt(0)}</AvatarFallback>
+                </Avatar>
+                <Button variant="outline" onClick={() => setProfile({ avatarUrl: undefined })}>
+                  Remove Profile Photo
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                  <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Your name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">University</label>
+                  <Input value={form.university} onChange={(e) => setForm(f => ({ ...f, university: e.target.value }))} placeholder="University" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Course</label>
+                  <Input value={form.course} onChange={(e) => setForm(f => ({ ...f, course: e.target.value }))} placeholder="Course (e.g., B.Tech)" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Stream</label>
+                  <Input value={form.stream} onChange={(e) => setForm(f => ({ ...f, stream: e.target.value }))} placeholder="Stream (e.g., ECE)" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                  <Input value={form.year} onChange={(e) => setForm(f => ({ ...f, year: e.target.value }))} placeholder="e.g., 3rd Year" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">GPA</label>
+                  <Input type="number" step="0.01" value={form.gpa} onChange={(e) => setForm(f => ({ ...f, gpa: e.target.value }))} placeholder="e.g., 8.5" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Graduation Year</label>
+                  <Input type="number" value={form.graduationYear} onChange={(e) => setForm(f => ({ ...f, graduationYear: e.target.value }))} placeholder="e.g., 2026" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment ID</label>
+                  <Input value={form.enrollmentId} onChange={(e) => setForm(f => ({ ...f, enrollmentId: e.target.value }))} placeholder="Enrollment ID" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email (read-only)</label>
+                  <Input value={profile?.email || ''} readOnly />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Enhanced Tabs Section - Following Applications pattern */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -463,7 +742,7 @@ export const StudentProfile: React.FC = () => {
                       <span className="text-sm text-gray-600">Performance</span>
                       <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
                         <Star className="h-3 w-3 mr-1" />
-                        Excellent
+                        {studentData.gpa >= 8.5 ? 'Excellent' : studentData.gpa >= 7 ? 'Good' : 'Average'}
                       </Badge>
                     </div>
                   </div>

@@ -9,8 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 import { useStudent } from '@/contexts/StudentContext';
 import { formatRemaining } from '@/lib/utils';
+import { Recommendation } from '@/types/student';
+import { DEFAULT_MATCH_CONFIG, MatchConfig } from '@/lib/matching';
 import {
   Search, Filter, MapPin, Calendar, DollarSign, Users, Building2,
   ChevronDown, ChevronUp, ExternalLink, Heart, Star, TrendingUp,
@@ -19,34 +22,7 @@ import {
   Eye, ThumbsUp, Brain, Shield, ArrowRight, Plus, X, Info, Crown
 } from 'lucide-react';
 
-// TypeScript Interfaces
-interface LocalInternship {
-  id: string;
-  title: string;
-  organization: string;
-  sector: string;
-  locations: string[];
-  modality: 'remote' | 'onsite' | 'hybrid';
-  duration: string;
-  stipend?: number;
-  applicationDeadline?: string;
-  description: string;
-  requiredSkills: string[];
-  preferredSkills: string[];
-  capacity: number; // Added missing capacity property
-  isTopPick?: boolean;
-  logo?: string;
-}
-
-interface Recommendation {
-  internship: LocalInternship;
-  score: number;
-  explanations: Array<{
-    reason: string;
-    type: 'skill' | 'location' | 'sector' | 'preference' | 'affirmative';
-    weight: number;
-  }>;
-}
+// Using shared Recommendation type from '@/types/student'
 
 interface FilterState {
   search: string;
@@ -106,6 +82,96 @@ const cardVariants: Variants = {
 };
 
 // Reusable Components
+const ScoringControls: React.FC<{
+  config: MatchConfig;
+  onChange: (next: MatchConfig) => void;
+}> = ({ config, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const setWeight = (key: keyof MatchConfig['weights']) => (values: number[]) => {
+    const v = (values?.[0] ?? 0) / 100;
+    onChange({ ...config, weights: { ...config.weights, [key]: Number(v.toFixed(2)) } });
+  };
+  const setToggle = (key: keyof MatchConfig) => (checked: boolean | string) => {
+    const v = checked === true;
+    onChange({ ...config, [key]: v } as MatchConfig);
+  };
+  return (
+    <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-gray-200 shadow-lg p-6 mb-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Settings className="h-5 w-5 text-gray-600" />
+          <span className="font-semibold text-gray-900">Scoring Controls</span>
+        </div>
+        <Button variant="outline" onClick={() => setOpen(!open)}>
+          {open ? 'Hide' : 'Show'}
+        </Button>
+      </div>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6"
+          >
+            {/* Weights */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-700">Required skills weight</span>
+                <span className="text-xs text-gray-500">{Math.round(config.weights.req * 100)}%</span>
+              </div>
+              <Slider value={[Math.round(config.weights.req * 100)]} onValueChange={setWeight('req')} max={100} step={1} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-700">Preferred skills weight</span>
+                <span className="text-xs text-gray-500">{Math.round(config.weights.pref * 100)}%</span>
+              </div>
+              <Slider value={[Math.round(config.weights.pref * 100)]} onValueChange={setWeight('pref')} max={100} step={1} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-700">Location weight</span>
+                <span className="text-xs text-gray-500">{Math.round(config.weights.loc * 100)}%</span>
+              </div>
+              <Slider value={[Math.round(config.weights.loc * 100)]} onValueChange={setWeight('loc')} max={100} step={1} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-700">Sector weight</span>
+                <span className="text-xs text-gray-500">{Math.round(config.weights.sector * 100)}%</span>
+              </div>
+              <Slider value={[Math.round(config.weights.sector * 100)]} onValueChange={setWeight('sector')} max={100} step={1} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-700">Modality weight</span>
+                <span className="text-xs text-gray-500">{Math.round(config.weights.modality * 100)}%</span>
+              </div>
+              <Slider value={[Math.round(config.weights.modality * 100)]} onValueChange={setWeight('modality')} max={100} step={1} />
+            </div>
+
+            {/* Toggles */}
+            <div className="flex items-center gap-3 mt-2">
+              <Checkbox checked={!!config.requireAllRequiredSkills} onCheckedChange={setToggle('requireAllRequiredSkills')} />
+              <span className="text-sm text-gray-700">Require all required skills</span>
+            </div>
+            <div className="flex items-center gap-3 mt-2">
+              <Checkbox checked={!!config.deadlineFilter} onCheckedChange={setToggle('deadlineFilter')} />
+              <span className="text-sm text-gray-700">Hide past-deadline internships</span>
+            </div>
+            <div className="flex items-center gap-3 mt-2">
+              <Checkbox checked={!!config.capacityFilter} onCheckedChange={setToggle('capacityFilter')} />
+              <span className="text-sm text-gray-700">Hide full (no capacity) internships</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
 const FilterBar: React.FC<{
   filters: FilterState;
   onFilterChange: (filters: Partial<FilterState>) => void;
@@ -233,22 +299,24 @@ const ExplanationPanel: React.FC<{
   isExpanded: boolean;
   onToggle: () => void;
 }> = ({ explanations, isExpanded, onToggle }) => {
-  const getIconForType = (type: string) => {
+  const getIconForType = (type?: string) => {
     switch (type) {
       case 'skill': return Zap;
       case 'location': return MapPin;
       case 'sector': return Building2;
+      case 'modality': return Home;
       case 'preference': return Heart;
       case 'affirmative': return Shield;
       default: return Info;
     }
   };
 
-  const getColorForType = (type: string) => {
+  const getColorForType = (type?: string) => {
     switch (type) {
       case 'skill': return 'text-blue-600 bg-blue-50';
       case 'location': return 'text-green-600 bg-green-50';
       case 'sector': return 'text-purple-600 bg-purple-50';
+      case 'modality': return 'text-indigo-600 bg-indigo-50';
       case 'preference': return 'text-pink-600 bg-pink-50';
       case 'affirmative': return 'text-orange-600 bg-orange-50';
       default: return 'text-gray-600 bg-gray-50';
@@ -280,8 +348,8 @@ const ExplanationPanel: React.FC<{
             className="mt-4 space-y-3"
           >
             {explanations.map((explanation, index) => {
-              const IconComponent = getIconForType(explanation.type);
-              const colorClasses = getColorForType(explanation.type);
+              const IconComponent = getIconForType((explanation as any).kind);
+              const colorClasses = getColorForType((explanation as any).kind);
               
               return (
                 <motion.div
@@ -360,7 +428,7 @@ const RecommendationCard: React.FC<{
       } ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
     >
       {/* Top Pick Ribbon */}
-      {internship.isTopPick && (
+      {index === 0 && (
         <div className="absolute top-4 right-4 z-10">
           <div className="bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
             <Crown className="h-3 w-3" />
@@ -411,13 +479,18 @@ const RecommendationCard: React.FC<{
                 
                 <Badge className="bg-gray-100 text-gray-700 font-medium">
                   <Calendar className="h-3 w-3 mr-1" />
-                  {internship.duration}
+                  {internship.durationWeeks ? `${internship.durationWeeks} weeks` : '—'}
                 </Badge>
                 
-                {internship.stipend && (
+                {(typeof internship.stipendMin === 'number' || typeof internship.stipendMax === 'number') && (
                   <Badge className="bg-green-100 text-green-700 font-medium">
                     <DollarSign className="h-3 w-3 mr-1" />
-                    ₹{internship.stipend.toLocaleString()}/month
+                    {typeof internship.stipendMin === 'number' && typeof internship.stipendMax === 'number'
+                      ? `₹${internship.stipendMin.toLocaleString()} - ₹${internship.stipendMax.toLocaleString()}/month`
+                      : typeof internship.stipendMin === 'number'
+                        ? `₹${internship.stipendMin.toLocaleString()}/month`
+                        : `₹${internship.stipendMax!.toLocaleString()}/month`
+                    }
                   </Badge>
                 )}
 
@@ -588,6 +661,9 @@ export const Recommendations: React.FC = () => {
   const navigate = useNavigate();
   const { getRecommendations, applyToInternship } = useStudent();
   
+  // Scoring config state
+  const [config, setConfig] = useState<MatchConfig>(DEFAULT_MATCH_CONFIG);
+
   // State Management
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -601,79 +677,16 @@ export const Recommendations: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  // Mock data - In production, this would come from API
-  const allRecommendations: Recommendation[] = useMemo(() => [
-    {
-      internship: {
-        id: '1',
-        title: 'Software Development Intern',
-        organization: 'Tech Innovations Ltd',
-        sector: 'Technology',
-        locations: ['Bangalore', 'Remote'],
-        modality: 'hybrid',
-        duration: '3-6 months',
-        stipend: 25000,
-        applicationDeadline: '2025-11-15',
-        description: 'Join our dynamic team to work on cutting-edge software solutions for government digitization projects.',
-        requiredSkills: ['JavaScript', 'React', 'Node.js', 'MongoDB'],
-        preferredSkills: ['TypeScript', 'AWS'],
-        capacity: 5, // Added capacity
-        isTopPick: true
-      },
-      score: 0.92,
-      explanations: [
-        { reason: 'Strong match with your JavaScript and React skills', type: 'skill', weight: 0.4 },
-        { reason: 'Location preference matches your profile', type: 'location', weight: 0.3 },
-        { reason: 'Technology sector aligns with your interests', type: 'sector', weight: 0.2 },
-        { reason: 'Remote work option matches your preference', type: 'preference', weight: 0.1 }
-      ]
-    },
-    {
-      internship: {
-        id: '2',
-        title: 'Data Analytics Intern',
-        organization: 'Government Analytics Division',
-        sector: 'Government',
-        locations: ['Delhi'],
-        modality: 'onsite',
-        duration: '6+ months',
-        stipend: 30000,
-        applicationDeadline: '2025-10-30',
-        description: 'Work on data-driven policy making and citizen service optimization using advanced analytics.',
-        requiredSkills: ['Python', 'SQL', 'Data Analysis', 'Statistics'],
-        preferredSkills: ['Machine Learning', 'Tableau'],
-        capacity: 3 // Added capacity
-      },
-      score: 0.85,
-      explanations: [
-        { reason: 'Python and data analysis skills are excellent matches', type: 'skill', weight: 0.5 },
-        { reason: 'Government sector preference from your profile', type: 'sector', weight: 0.3 },
-        { reason: 'Higher stipend matches your expectations', type: 'preference', weight: 0.2 }
-      ]
-    },
-    {
-      internship: {
-        id: '3',
-        title: 'Digital Marketing Intern',
-        organization: 'Social Impact Foundation',
-        sector: 'Non-profit',
-        locations: ['Mumbai', 'Pune'],
-        modality: 'remote',
-        duration: '3-6 months',
-        stipend: 15000,
-        description: 'Help amplify our mission through digital campaigns and social media strategies.',
-        requiredSkills: ['Digital Marketing', 'Social Media', 'Content Creation'],
-        preferredSkills: ['SEO', 'Analytics'],
-        capacity: 2 // Added capacity
-      },
-      score: 0.78,
-      explanations: [
-        { reason: 'Digital marketing skills align with requirements', type: 'skill', weight: 0.4 },
-        { reason: 'Remote work matches your preference', type: 'preference', weight: 0.3 },
-        { reason: 'Non-profit sector supports diversity initiatives', type: 'affirmative', weight: 0.3 }
-      ]
-    }
-  ], []);
+// Compute recommendations using the matching engine and current config
+  const allRecommendations: Recommendation[] = useMemo(() => {
+    const matchFilters: any = {
+      location: filters.location || undefined,
+      sector: filters.sector || undefined,
+      modality: (filters.modality as any) || 'any',
+      // duration mapping omitted for prototype
+    };
+    return getRecommendations(50, matchFilters, config);
+  }, [getRecommendations, filters.location, filters.sector, filters.modality, config]);
 
   // Filter and sort recommendations
   const filteredRecommendations = useMemo(() => {
@@ -762,7 +775,7 @@ export const Recommendations: React.FC = () => {
     navigate(`/dashboard/apply/${internshipId}`);
   }, [navigate]);
 
-  const handleQuickApply = useCallback((internship: LocalInternship) => {
+  const handleQuickApply = useCallback((internship: Recommendation['internship']) => {
     applyToInternship(internship);
     // Show success notification
   }, [applyToInternship]);
@@ -798,6 +811,9 @@ export const Recommendations: React.FC = () => {
             Opportunities tailored for your skills and preferences, powered by our AI matching engine.
           </p>
         </motion.div>
+
+        {/* Scoring Controls */}
+        <ScoringControls config={config} onChange={setConfig} />
 
         {/* Filters */}
         <FilterBar 

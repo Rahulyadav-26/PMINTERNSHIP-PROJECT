@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStudent } from '@/contexts/StudentContext';
 import {
   User,
   FileText,
@@ -35,7 +36,6 @@ const sidebarItems: SidebarItem[] = [
   { name: 'Recommendations', href: '/dashboard/recommendations', icon: Activity, roles: ['student'] },
   { name: 'Applications', href: '/dashboard/applications', icon: FileText, roles: ['student'] },
   { name: 'Offers', href: '/dashboard/offers', icon: Users, roles: ['student'] },
-  { name: 'Consent', href: '/dashboard/consent', icon: Shield, roles: ['student'] },
   { name: 'Allocation Results', href: '/dashboard/results', icon: Target, roles: ['student'] },
   { name: 'Feedback', href: '/dashboard/feedback', icon: MessageSquare, roles: ['student'] },
   
@@ -56,11 +56,14 @@ const sidebarItems: SidebarItem[] = [
   { name: 'Analytics', href: '/analytics', icon: Map, roles: ['admin', 'ministry'] },
   { name: 'FAQ & Support', href: '/faq', icon: HelpCircle, roles: ['student', 'admin', 'ministry'] },
   { name: 'About', href: '/about', icon: BookOpen, roles: ['student', 'admin', 'ministry'] },
-  { name: 'Contact', href: '/contact', icon: Phone, roles: ['student', 'admin', 'ministry'] },
+  { name: 'Contact', href: '/contact', icon: Phone, roles: ['admin'] },
 ];
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
+  const { profile } = useStudent();
+  const displayName = profile?.name || user?.name || 'User';
+  const initial = (profile?.name || user?.name || 'U').charAt(0);
 
   const filteredItems = sidebarItems.filter(item => 
     user?.role && item.roles.includes(user.role)
@@ -107,12 +110,12 @@ export const Sidebar: React.FC = () => {
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
             <span className="text-secondary-foreground font-medium text-xs">
-              {user?.name?.charAt(0) || 'U'}
+              {initial}
             </span>
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground truncate">
-              {user?.name}
+              {displayName}
             </p>
             <p className="text-xs text-muted-foreground capitalize">
               {user?.role}

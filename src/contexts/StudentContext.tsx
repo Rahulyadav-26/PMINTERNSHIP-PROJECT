@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import { Application, ApplicationFormData, ApplicationStatus, Consent, Internship, Offer, Preferences, Recommendation, StudentProfile, StudentState, FeedbackData } from '@/types/student';
 import { SAMPLE_INTERNSHIPS } from '@/lib/sampleData';
-import { rankInternships } from '@/lib/matching';
+import { rankInternships, MatchConfig, DEFAULT_MATCH_CONFIG } from '@/lib/matching';
 import { SKILLS } from '@/lib/skills';
 import { useAuth } from './AuthContext';
 import { formatRemaining, notify, timeRemaining } from '@/lib/utils';
@@ -17,7 +17,7 @@ interface StudentContextType extends StudentState {
   setConsent: (updates: Partial<Consent>) => void;
   uploadResume: (file: File) => Promise<void>;
   extractSkillsFromText: (text: string) => string[];
-  getRecommendations: (topN?: number, filters?: any) => Recommendation[];
+  getRecommendations: (topN?: number, filters?: any, config?: MatchConfig) => Recommendation[];
   applyToInternship: (internship: Internship, formData?: ApplicationFormData) => void;
   applyBulk: (internshipIds: string[], formData?: ApplicationFormData) => void;
   withdrawApplication: (applicationId: string) => void;
@@ -225,9 +225,9 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const found = SKILLS.filter(s => lower.includes(s.toLowerCase()));
       return Array.from(new Set(found));
     },
-    getRecommendations: (topN = 10, filters?: any) => {
+    getRecommendations: (topN = 10, filters?: any, config: MatchConfig = DEFAULT_MATCH_CONFIG) => {
       const skills = state.profile?.skills || [];
-      return rankInternships(skills, state.preferences, SAMPLE_INTERNSHIPS, topN, filters);
+      return rankInternships(skills, state.preferences, SAMPLE_INTERNSHIPS, topN, filters, config);
     },
     applyToInternship: (internship: Internship, formData?: ApplicationFormData) => {
       if (!state.profile) return;

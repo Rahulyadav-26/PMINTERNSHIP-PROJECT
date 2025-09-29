@@ -10,14 +10,13 @@ import { StudentProvider } from "@/contexts/StudentContext";
 import { Landing } from "./pages/Landing";
 import Login from "./pages/auth/Login";
 import { Register } from "./pages/auth/Register";
-import { StudentProfile } from "./pages/student/StudentProfile";
+import StudentProfile from "./pages/student/StudentProfile";
 import { Skills } from "./pages/student/Skills";
 import { Preferences } from "./pages/student/Preferences";
 import Resume from "./pages/student/Resume";
 import { Recommendations } from "./pages/student/Recommendations";
 import { Applications } from "./pages/student/Applications";
 import { Offers } from "./pages/student/Offers";
-import { Consent } from "./pages/student/Consent";
 import { AdminData } from "./pages/admin/AdminData";
 import { MinistryBias } from "./pages/ministry/MinistryBias";
 import NotFound from "./pages/NotFound";
@@ -153,11 +152,6 @@ const App = () => (
             <Route path="/dashboard/feedback" element={
               <ProtectedRoute requiredRole="student">
                 <Feedback />
-              </ProtectedRoute>
-            } />
-            <Route path="/dashboard/consent" element={
-              <ProtectedRoute requiredRole="student">
-                <Consent />
               </ProtectedRoute>
             } />
             

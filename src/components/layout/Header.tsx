@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStudent } from '@/contexts/StudentContext';
 
 interface HeaderProps {
   title: string;
@@ -17,6 +18,10 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ title }) => {
   const { user, logout } = useAuth();
+  const { profile } = useStudent();
+  const displayName = profile?.name || user?.name || 'User';
+  const avatarUrl = profile?.avatarUrl || (user as any)?.profileImage;
+  const initial = (profile?.name || user?.name || 'U').charAt(0);
 
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-6">
@@ -36,13 +41,13 @@ export const Header: React.FC<HeaderProps> = ({ title }) => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center space-x-3 p-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.profileImage} />
+                <AvatarImage src={avatarUrl} />
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  {user?.name?.charAt(0) || 'U'}
+                  {initial}
                 </AvatarFallback>
               </Avatar>
               <div className="text-left hidden md:block">
-                <p className="text-sm font-medium">{user?.name}</p>
+                <p className="text-sm font-medium">{displayName}</p>
                 <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
               </div>
             </Button>
