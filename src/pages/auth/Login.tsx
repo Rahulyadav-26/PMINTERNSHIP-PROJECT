@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, Variants } from 'framer-motion';
@@ -129,7 +129,8 @@ const GlassmorphismCard: React.FC<{
   </motion.div>
 );
 
-const AnimatedInput: React.FC<{
+
+interface AnimatedInputProps {
   type: string;
   name: string;
   value: string;
@@ -138,48 +139,74 @@ const AnimatedInput: React.FC<{
   icon: React.ComponentType<any>;
   required?: boolean;
   rightIcon?: React.ReactNode;
-}> = ({ type, name, value, onChange, placeholder, icon: Icon, required = false, rightIcon }) => {
+  id?: string;
+}
+
+const AnimatedInput: React.FC<AnimatedInputProps> = ({
+  type,
+  name,
+  value,
+  onChange,
+  placeholder,
+  icon: Icon,
+  required = false,
+  rightIcon,
+  id,
+}) => {
   const [isFocused, setIsFocused] = useState(false);
 
+  const handleFocus = useCallback(() => setIsFocused(true), []);
+  const handleBlur = useCallback(() => setIsFocused(false), []);
+
   return (
-    <motion.div 
+    <motion.div
       className="relative"
       whileHover={{ scale: 1.01 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
     >
+      {/* Glow border */}
+      <motion.div
+        className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl opacity-0 blur-sm z-[-1]"
+        animate={{ opacity: isFocused ? 0.3 : 0 }}
+      />
+
       <div className="relative">
+        {/* Left icon */}
         <motion.div
           className="absolute left-3 top-1/2 -translate-y-1/2 z-10"
-          animate={{ 
+          animate={{
             color: isFocused ? "#3b82f6" : "#94a3b8",
-            scale: isFocused ? 1.1 : 1 
+            scale: isFocused ? 1.1 : 1,
           }}
           transition={{ duration: 0.2 }}
         >
           <Icon className="h-5 w-5" />
         </motion.div>
+
+        {/* Input */}
         <motion.input
+          id={id || name}
           type={type}
           name={name}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
+          aria-label={placeholder}
           required={required}
           className="w-full pl-12 pr-12 py-4 rounded-2xl border-0 bg-white/80 backdrop-blur-lg text-gray-900 placeholder-gray-500 shadow-lg focus:bg-white/90 focus:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          whileFocus={{ scale: 1.01 }}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          animate={{ scale: isFocused ? 1.01 : 1 }}
+          transition={{ duration: 0.2 }}
         />
+
+        {/* Right icon */}
         {rightIcon && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             {rightIcon}
           </div>
         )}
       </div>
-      <motion.div
-        className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl opacity-0 blur-sm transition-opacity duration-300"
-        animate={{ opacity: isFocused ? 0.3 : 0 }}
-      />
     </motion.div>
   );
 };
