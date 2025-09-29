@@ -373,10 +373,34 @@ export const Landing: React.FC = () => {
   ];
 
   const stats = [
-    { number: 25000, label: 'Students Onboarded', suffix: '+', icon: Users, desc: 'Verified student profiles across India' },
-    { number: 1200, label: 'Host Organisations', suffix: '+', icon: Building2, desc: 'Ministries, PSUs & Govt-backed orgs' },
-    { number: 95, label: 'On-time Allocations', suffix: '%', icon: Target, desc: 'Offer cycles completed within SLA' },
-    { number: 100, label: 'Transparency Score', suffix: '%', icon: Trophy, desc: 'Explainable matching with audit trails' }
+    {
+      number: 125000,
+      label: 'Internships Matched',
+      suffix: '+',
+      icon: Users,
+      desc: 'Successful, skills-aligned matches completed across the platform'
+    },
+    {
+      number: 85,
+      label: 'Partner Ministries & PSUs',
+      suffix: '+',
+      icon: Building2,
+      desc: 'Central ministries, PSUs, and government-backed organizations onboarded'
+    },
+    {
+      number: 720,
+      label: 'Districts Covered',
+      suffix: '+',
+      icon: MapPin,
+      desc: 'Opportunities available across urban and aspirational districts in India'
+    },
+    {
+      number: 7,
+      label: 'Avg. Offer Time',
+      suffix: ' days',
+      icon: Clock,
+      desc: 'Average time from application to offer with streamlined workflows'
+    }
   ];
 
   const testimonials = [
@@ -852,25 +876,25 @@ className="relative bg-white/80 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl bor
                 whileHover={{ scale: 1.05, y: -10 }}
                 className="group cursor-pointer"
               >
-                <GlowCard className="bg-white/10 backdrop-blur-lg border-white/20 text-white" glowColor="white">
+                <GlowCard className="bg-white/10 backdrop-blur-lg border-white/20" glowColor="white">
                   <div className="flex items-center justify-between mb-6">
                     <motion.div
                       whileHover={{ rotate: 360 }}
                       transition={{ duration: 0.6 }}
                     >
-                      <stat.icon className="w-10 h-10 opacity-80 group-hover:opacity-100 transition-opacity" />
+                      <stat.icon className="w-10 h-10 text-blue-600 opacity-80 group-hover:opacity-100 transition-opacity" />
                     </motion.div>
                     <div className="text-right">
-                      <div className="text-4xl font-black">
+                      <div className="text-4xl font-black text-gray-900">
                         <AnimatedCounter end={stat.number} suffix={stat.suffix} />
                       </div>
-                      <div className="text-sm opacity-90 font-semibold uppercase tracking-wider">
+                      <div className="text-sm text-gray-600 font-semibold uppercase tracking-wider">
                         {stat.label}
                       </div>
                     </div>
                   </div>
-                  <div className="h-1 bg-white/40 rounded-full group-hover:bg-white/60 transition-all duration-300"></div>
-                  <div className="mt-4 text-sm opacity-90">
+                  <div className="h-1 bg-gray-200 rounded-full group-hover:bg-gray-300 transition-all duration-300"></div>
+                  <div className="mt-4 text-sm text-gray-600">
                     {stat.desc}
                   </div>
                 </GlowCard>
@@ -1186,8 +1210,8 @@ className="relative bg-white/80 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl bor
             viewport={{ once: true }}
           >
             <div className="text-gray-400 text-lg mb-6 md:mb-0">
-              © 2024 PM Internship Scheme. All rights reserved. 
-              <span className="text-blue-400 font-semibold"> Built for Smart India Hackathon 2024.</span>
+              © 2025 PM Internship Scheme. All rights reserved. 
+              <span className="text-blue-400 font-semibold"> Built for Smart India Hackathon 2025.</span>
             </div>
             <div className="flex items-center space-x-8 text-gray-400">
               <motion.span 
@@ -1197,7 +1221,7 @@ className="relative bg-white/80 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl bor
                 🇮🇳 <span className="ml-2 font-semibold">Made in India</span>
               </motion.span>
               <span className="text-gray-600">•</span>
-              <span className="text-blue-400 font-semibold">SIH 2024 Winner</span>
+              <span className="text-blue-400 font-semibold">SIH 2025</span>
               <span className="text-gray-600">•</span>
               <span className="text-purple-400 font-semibold">Government of India</span>
             </div>
